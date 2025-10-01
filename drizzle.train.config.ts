@@ -1,0 +1,10 @@
+import type { Config } from "drizzle-kit";
+
+export default {
+  schema: "./lib/db/train-schema.ts",
+  out: "./lib/db/train-migrations",
+  dialect: "sqlite",
+  dbCredentials: {
+    url: "./train-database.sqlite",
+  },
+} satisfies Config;

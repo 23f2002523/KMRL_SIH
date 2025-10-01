@@ -2,83 +2,48 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { FileText, Clock, CheckCircle, AlertTriangle, TrendingUp } from "lucide-react"
+import { useLanguage } from "@/hooks/use-language"
 
-interface DashboardStatsProps {
-  language: "en" | "ml"
-}
+const statsData = [
+  {
+    titleKey: "stats.totalDocuments",
+    value: "1,234",
+    change: "+12%",
+    icon: FileText,
+    color: "text-blue-600",
+  },
+  {
+    titleKey: "stats.pendingReviews",
+    value: "45",
+    change: "-8%",
+    icon: Clock,
+    color: "text-yellow-600",
+  },
+  {
+    titleKey: "stats.completedTasks",
+    value: "987",
+    change: "+15%",
+    icon: CheckCircle,
+    color: "text-green-600",
+  },
+  {
+    titleKey: "stats.activeUsers",
+    value: "12",
+    change: "+3%",
+    icon: AlertTriangle,
+    color: "text-red-600",
+  },
+]
 
-const statsData = {
-  en: [
-    {
-      title: "Total Documents",
-      value: "1,234",
-      change: "+12%",
-      icon: FileText,
-      color: "text-blue-600",
-    },
-    {
-      title: "Pending Review",
-      value: "45",
-      change: "-8%",
-      icon: Clock,
-      color: "text-yellow-600",
-    },
-    {
-      title: "Approved",
-      value: "987",
-      change: "+15%",
-      icon: CheckCircle,
-      color: "text-green-600",
-    },
-    {
-      title: "Urgent Items",
-      value: "12",
-      change: "+3%",
-      icon: AlertTriangle,
-      color: "text-red-600",
-    },
-  ],
-  ml: [
-    {
-      title: "മൊത്തം രേഖകൾ",
-      value: "1,234",
-      change: "+12%",
-      icon: FileText,
-      color: "text-blue-600",
-    },
-    {
-      title: "അവലോകനത്തിനായി",
-      value: "45",
-      change: "-8%",
-      icon: Clock,
-      color: "text-yellow-600",
-    },
-    {
-      title: "അംഗീകരിച്ചത്",
-      value: "987",
-      change: "+15%",
-      icon: CheckCircle,
-      color: "text-green-600",
-    },
-    {
-      title: "അടിയന്തിര ഇനങ്ങൾ",
-      value: "12",
-      change: "+3%",
-      icon: AlertTriangle,
-      color: "text-red-600",
-    },
-  ],
-}
-
-export function DashboardStats({ language }: DashboardStatsProps) {
-  const stats = statsData[language]
+export function DashboardStats() {
+  const { language, t } = useLanguage()
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat, index) => (
+      {statsData.map((stat, index) => (
         <Card key={index}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t(stat.titleKey)}</CardTitle>
             <stat.icon className={`h-4 w-4 ${stat.color}`} />
           </CardHeader>
           <CardContent>

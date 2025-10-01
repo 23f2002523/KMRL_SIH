@@ -14,16 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LanguageToggle } from "@/components/language-toggle"
 import { ModeToggle } from "@/components/mode-toggle"
+import { HighContrastToggle } from "@/components/high-contrast-toggle"
+import { useLanguage } from "@/hooks/use-language"
 import { Search, Bell, User, LogOut, Settings } from "lucide-react"
 
-interface DashboardHeaderProps {
-  language: "en" | "ml"
-  onLanguageChange: (language: "en" | "ml") => void
-}
-
-export function DashboardHeader({ language, onLanguageChange }: DashboardHeaderProps) {
+export function DashboardHeader() {
+  const { language, t } = useLanguage()
   const [searchQuery, setSearchQuery] = useState("")
 
   const handleSearch = (e: React.FormEvent) => {
@@ -40,7 +37,7 @@ export function DashboardHeader({ language, onLanguageChange }: DashboardHeaderP
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder={language === "en" ? "Search documents..." : "രേഖകൾ തിരയുക..."}
+            placeholder={t("nav.search")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 pr-4"
@@ -50,11 +47,11 @@ export function DashboardHeader({ language, onLanguageChange }: DashboardHeaderP
 
       {/* Actions */}
       <div className="flex items-center gap-4">
-        <LanguageToggle currentLanguage={language} onLanguageChange={onLanguageChange} />
+        <HighContrastToggle />
         <ModeToggle />
 
         {/* Notifications */}
-        <Button variant="ghost" size="sm" className="relative">
+        <Button variant="ghost" size="sm" className="relative navbar-glow">
           <Bell className="h-4 w-4" />
           <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-xs flex items-center justify-center text-destructive-foreground">
             3
@@ -64,7 +61,7 @@ export function DashboardHeader({ language, onLanguageChange }: DashboardHeaderP
         {/* User Menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full navbar-glow">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
                 <AvatarFallback>AD</AvatarFallback>

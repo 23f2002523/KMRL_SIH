@@ -13,7 +13,8 @@ export function LanguageToggle({ currentLanguage, onLanguageChange }: LanguageTo
       variant="outline"
       size="sm"
       onClick={() => onLanguageChange(currentLanguage === "en" ? "ml" : "en")}
-      className="flex items-center gap-2"
+      className="flex items-center gap-2 navbar-glow"
+      aria-label={`Switch to ${currentLanguage === "en" ? "Malayalam" : "English"}`}
     >
       <Globe className="h-4 w-4" />
       <span className="text-sm font-medium">{currentLanguage === "en" ? "മലയാളം" : "English"}</span>

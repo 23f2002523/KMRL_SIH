@@ -1,28 +1,62 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { DatabaseService } from "@/lib/database"
+import { db } from "@/lib/db"
+import { documents, users, documentAnalytics } from "@/lib/db/schema"
+import { eq, like, and } from "drizzle-orm"
 
 // GET /api/documents - Retrieve documents with optional filters
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
-    const department_id = searchParams.get("department_id")
-    const category_id = searchParams.get("category_id")
-    const user_id = searchParams.get("user_id")
+    const category = searchParams.get("category")
+    const search = searchParams.get("search")
+    const trainset = searchParams.get("trainset") // For trainset-specific documents
 
-    const filters = {
-      ...(status && { status }),
-      ...(department_id && { department_id }),
-      ...(category_id && { category_id }),
-      ...(user_id && { user_id }),
+    // Build base query
+    let documentsResult;
+
+    if (status || category || search || trainset) {
+      // Apply filters
+      const conditions = []
+      if (status) conditions.push(eq(documents.status, status as any))
+      if (category) conditions.push(eq(documents.category, category))
+      if (search) conditions.push(like(documents.title, `%${search}%`))
+      if (trainset) {
+        // Search for trainset-related documents
+        conditions.push(like(documents.title, `%${trainset}%`))
+      }
+
+      documentsResult = await db
+        .select()
+        .from(documents)
+        .where(and(...conditions))
+    } else {
+      // No filters - get all documents
+      documentsResult = await db.select().from(documents)
     }
 
-    const documents = await DatabaseService.getDocuments(filters)
+    // Get uploader details for each document
+    const documentsWithUploaders = await Promise.all(
+      documentsResult.map(async (doc) => {
+        const uploader = doc.uploadedBy
+          ? await db.select().from(users).where(eq(users.id, doc.uploadedBy)).limit(1)
+          : null
+
+        return {
+          ...doc,
+          uploader: uploader?.[0] ? {
+            id: uploader[0].id,
+            name: uploader[0].name,
+            email: uploader[0].email,
+          } : null
+        }
+      })
+    )
 
     return NextResponse.json({
       success: true,
-      data: documents,
-      count: documents.length,
+      data: documentsWithUploaders,
+      count: documentsWithUploaders.length,
     })
   } catch (error) {
     console.error("Error fetching documents:", error)
@@ -36,45 +70,41 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Validate required fields
-    const requiredFields = ["title", "file_path", "file_name", "source_type", "uploaded_by"]
+    const requiredFields = ["title", "filePath", "fileName", "fileSize", "mimeType", "uploadedBy"]
     for (const field of requiredFields) {
       if (!body[field]) {
         return NextResponse.json({ success: false, error: `Missing required field: ${field}` }, { status: 400 })
       }
     }
 
-    const document = await DatabaseService.createDocument({
+    // Create document
+    const newDocument = await db.insert(documents).values({
       title: body.title,
-      malayalam_title: body.malayalam_title,
-      description: body.description,
-      malayalam_description: body.malayalam_description,
-      file_path: body.file_path,
-      file_name: body.file_name,
-      file_size: body.file_size,
-      mime_type: body.mime_type,
-      language: body.language || "en",
-      source_type: body.source_type,
-      source_metadata: body.source_metadata,
-      category_id: body.category_id,
-      department_id: body.department_id,
-      uploaded_by: body.uploaded_by,
-      status: "pending",
-      priority: body.priority || "medium",
-      due_date: body.due_date,
-    })
+      description: body.description || null,
+      filePath: body.filePath,
+      fileName: body.fileName,
+      fileSize: body.fileSize,
+      mimeType: body.mimeType,
+      category: body.category || null,
+      tags: body.tags ? JSON.stringify(body.tags) : null,
+      uploadedBy: body.uploadedBy,
+      status: "active",
+    }).returning()
 
-    // Create audit log
-    await DatabaseService.createAuditLog({
-      user_id: body.uploaded_by,
-      document_id: document.id,
-      action: "document_created",
-      details: { source_type: body.source_type, file_name: body.file_name },
-    })
+    // Log the upload action
+    if (newDocument[0] && body.uploadedBy) {
+      await db.insert(documentAnalytics).values({
+        documentId: newDocument[0].id,
+        userId: body.uploadedBy,
+        action: "view", // Use allowed enum value
+        metadata: JSON.stringify({ fileName: body.fileName, category: body.category }),
+      })
+    }
 
     return NextResponse.json(
       {
         success: true,
-        data: document,
+        data: newDocument[0],
       },
       { status: 201 },
     )

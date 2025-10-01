@@ -3,7 +3,10 @@ import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
-import { ThemeProvider } from "@/components/theme-provider"
+import { ThemeProvider } from "@/components/providers/theme-provider"
+import { ToastProvider } from "@/components/ui/toast-provider"
+import { HighContrastProvider } from "@/hooks/use-high-contrast"
+import { LanguageProvider } from "@/hooks/use-language"
 import { Suspense } from "react"
 import "./globals.css"
 
@@ -22,8 +25,13 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <Suspense fallback={null}>
-          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-            {children}
+          <ThemeProvider>
+            <HighContrastProvider>
+              <LanguageProvider>
+                {children}
+                <ToastProvider />
+              </LanguageProvider>
+            </HighContrastProvider>
           </ThemeProvider>
         </Suspense>
         <Analytics />

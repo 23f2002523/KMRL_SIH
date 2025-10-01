@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
+import { useLanguage } from "@/hooks/use-language"
 import {
   FileText,
   Upload,
@@ -23,43 +24,25 @@ import {
   X,
 } from "lucide-react"
 
-interface SidebarProps {
-  language: "en" | "ml"
-}
+// Navigation items with translation keys
+const navigationItems = [
+  { translationKey: "nav.overview", href: "/overview", icon: BarChart3 },
+  { translationKey: "nav.documents", href: "/documents", icon: FileText, badge: "12" },
+  { translationKey: "nav.upload", href: "/upload", icon: Upload },
+  { translationKey: "nav.search", href: "/search", icon: Search },
+  { translationKey: "nav.workflow", href: "/workflow", icon: Workflow, badge: "3" },
+  { translationKey: "nav.aiChat", href: "/ai-chat", icon: Brain },
+  { translationKey: "nav.analytics", href: "/analytics", icon: BarChart3 },
+  { translationKey: "nav.archive", href: "/archive", icon: Archive },
+  { translationKey: "nav.users", href: "/users", icon: Users },
+  { translationKey: "nav.notifications", href: "/notifications", icon: Bell, badge: "5" },
+  { translationKey: "nav.settings", href: "/settings", icon: Settings },
+]
 
-const navigationItems = {
-  en: [
-    { name: "Dashboard", href: "/", icon: BarChart3 },
-    { name: "Documents", href: "/documents", icon: FileText, badge: "12" },
-    { name: "Upload", href: "/upload", icon: Upload },
-    { name: "Search", href: "/search", icon: Search },
-    { name: "Workflow", href: "/workflow", icon: Workflow, badge: "3" },
-    { name: "AI Assistant", href: "/ai-chat", icon: Brain },
-    { name: "Analytics", href: "/analytics", icon: BarChart3 },
-    { name: "Archive", href: "/archive", icon: Archive },
-    { name: "Users", href: "/users", icon: Users },
-    { name: "Notifications", href: "/notifications", icon: Bell, badge: "5" },
-    { name: "Settings", href: "/settings", icon: Settings },
-  ],
-  ml: [
-    { name: "ഡാഷ്ബോർഡ്", href: "/", icon: BarChart3 },
-    { name: "രേഖകൾ", href: "/documents", icon: FileText, badge: "12" },
-    { name: "അപ്‌ലോഡ്", href: "/upload", icon: Upload },
-    { name: "തിരയൽ", href: "/search", icon: Search },
-    { name: "വർക്ക്ഫ്ലോ", href: "/workflow", icon: Workflow, badge: "3" },
-    { name: "AI സഹായി", href: "/ai-chat", icon: Brain },
-    { name: "അനലിറ്റിക്സ്", href: "/analytics", icon: BarChart3 },
-    { name: "ആർക്കൈവ്", href: "/archive", icon: Archive },
-    { name: "ഉപയോക്താക്കൾ", href: "/users", icon: Users },
-    { name: "അറിയിപ്പുകൾ", href: "/notifications", icon: Bell, badge: "5" },
-    { name: "ക്രമീകരണങ്ങൾ", href: "/settings", icon: Settings },
-  ],
-}
-
-export function DashboardSidebar({ language }: SidebarProps) {
+export function DashboardSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const pathname = usePathname()
-  const items = navigationItems[language] || navigationItems.en
+  const { language, t } = useLanguage()
 
   return (
     <div
@@ -80,7 +63,14 @@ export function DashboardSidebar({ language }: SidebarProps) {
             </div>
           </div>
         )}
-        <Button variant="ghost" size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className="h-8 w-8 p-0">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => setIsCollapsed(!isCollapsed)} 
+          className="h-8 w-8 p-0 navbar-glow"
+          aria-label={t('accessibility.toggleSidebar')}
+          aria-expanded={!isCollapsed}
+        >
           {isCollapsed ? <Menu className="h-4 w-4" /> : <X className="h-4 w-4" />}
         </Button>
       </div>
@@ -88,22 +78,24 @@ export function DashboardSidebar({ language }: SidebarProps) {
       {/* Navigation */}
       <ScrollArea className="flex-1 px-2 py-4">
         <nav className="space-y-1">
-          {items.map((item) => {
+          {navigationItems.map((item) => {
             const isActive = pathname === item.href
             return (
               <Link key={item.href} href={item.href}>
                 <Button
                   variant={isActive ? "secondary" : "ghost"}
                   className={cn(
-                    "w-full justify-start gap-3 h-10",
+                    "w-full justify-start gap-3 h-10 navbar-glow",
                     isCollapsed && "justify-center px-2",
                     isActive && "bg-sidebar-accent text-sidebar-accent-foreground",
                   )}
+                  aria-label={t(item.translationKey)}
+                  aria-current={isActive ? "page" : undefined}
                 >
                   <item.icon className="h-4 w-4 flex-shrink-0" />
                   {!isCollapsed && (
                     <>
-                      <span className="flex-1 text-left">{item.name}</span>
+                      <span className="flex-1 text-left">{t(item.translationKey)}</span>
                       {item.badge && (
                         <Badge variant="secondary" className="ml-auto h-5 px-1.5 text-xs">
                           {item.badge}

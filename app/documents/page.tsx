@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Search, Grid, List, Plus, Download, FileText } from "lucide-react"
+import { useLanguage } from "@/hooks/use-language"
 import type { Document } from "@/lib/database"
 
 // Extended mock data
@@ -92,7 +93,7 @@ const mockDocuments: Document[] = [
 ]
 
 export default function DocumentsPage() {
-  const [language, setLanguage] = useState<"en" | "ml">("en")
+  const { language, t } = useLanguage()
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [priorityFilter, setPriorityFilter] = useState<string>("all")
@@ -124,10 +125,10 @@ export default function DocumentsPage() {
 
   return (
     <div className="flex h-screen bg-background">
-      <DashboardSidebar language={language} />
+      <DashboardSidebar />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <DashboardHeader language={language} onLanguageChange={setLanguage} />
+        <DashboardHeader />
 
         <main className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">
@@ -135,7 +136,7 @@ export default function DocumentsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold tracking-tight text-balance">
-                  {language === "en" ? "Documents" : "രേഖകൾ"}
+                  {t("nav.documents")}
                 </h1>
                 <p className="text-muted-foreground text-pretty">
                   {language === "en"
@@ -146,11 +147,11 @@ export default function DocumentsPage() {
               <div className="flex items-center gap-2">
                 <Button variant="outline">
                   <Download className="mr-2 h-4 w-4" />
-                  {language === "en" ? "Export" : "എക്സ്പോർട്ട്"}
+                  {t("common.export")}
                 </Button>
                 <Button>
                   <Plus className="mr-2 h-4 w-4" />
-                  {language === "en" ? "Upload Document" : "രേഖ അപ്‌ലോഡ് ചെയ്യുക"}
+                  {t("documents.uploadDocument")}
                 </Button>
               </div>
             </div>
@@ -166,7 +167,7 @@ export default function DocumentsPage() {
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
-                        placeholder={language === "en" ? "Search documents..." : "രേഖകൾ തിരയുക..."}
+                        placeholder={t("documents.searchDocuments")}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10"
@@ -177,7 +178,7 @@ export default function DocumentsPage() {
                   <div className="flex items-center gap-2">
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
                       <SelectTrigger className="w-32">
-                        <SelectValue placeholder={language === "en" ? "Status" : "സ്റ്റാറ്റസ്"} />
+                        <SelectValue placeholder={t("documents.status")} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">{language === "en" ? "All Status" : "എല്ലാ സ്റ്റാറ്റസും"}</SelectItem>
