@@ -23,7 +23,16 @@ import { format, addHours, startOfDay } from "date-fns"
 import jsPDF from 'jspdf'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
-import { DocumentInductionService, type DocumentInsight } from "@/lib/document-induction-service"
+// Document service removed - using static data for now
+interface DocumentInsight {
+  id: string
+  title: string
+  content: string
+  relevance: number
+  impact: 'high' | 'medium' | 'low'
+  category: string
+  insight: string
+}
 
 interface InductionPlanData {
   rank: number
@@ -90,11 +99,31 @@ export function EnhancedInductionPlan({
 
   const timelineItems = generateTimelineItems()
 
-  // Load document insights for a trainset
+  // Load document insights for a trainset (using static data now)
   const loadDocumentInsights = async (trainsetId: number, serialNo: string) => {
     setLoadingInsights(prev => ({ ...prev, [trainsetId]: true }))
     try {
-      const insights = await DocumentInductionService.getDocumentInsights(trainsetId)
+      // Static mock insights data
+      const insights: DocumentInsight[] = [
+        {
+          id: `insight-${trainsetId}-1`,
+          title: `Safety Analysis for ${serialNo}`,
+          content: 'Recent safety inspection completed',
+          relevance: 0.95,
+          impact: 'high',
+          category: 'Safety',
+          insight: 'All safety systems operational and compliant'
+        },
+        {
+          id: `insight-${trainsetId}-2`,
+          title: `Maintenance History for ${serialNo}`,
+          content: 'Maintenance schedule up to date',
+          relevance: 0.88,
+          impact: 'medium',
+          category: 'Maintenance',
+          insight: 'Regular maintenance cycle on schedule'
+        }
+      ]
       setDocumentInsights(prev => ({ ...prev, [trainsetId]: insights }))
     } catch (error) {
       console.error('Failed to load document insights:', error)

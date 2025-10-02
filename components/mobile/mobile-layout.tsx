@@ -84,7 +84,7 @@ export function MobileLayout({ children, language, onLanguageChange }: MobileLay
                   <div className="flex flex-col">
                     <span className="font-semibold">KMRL</span>
                     <span className="text-sm text-muted-foreground">
-                      {language === "en" ? "Document Assistant" : "രേഖ സഹായി"}
+                      {language === "en" ? "Train Management" : "ട്രെയിൻ മാനേജ്മെന്റ്"}
                     </span>
                   </div>
                 </div>

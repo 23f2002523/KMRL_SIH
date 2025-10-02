@@ -2,9 +2,10 @@ import { type NextRequest, NextResponse } from "next/server"
 import { trainDb } from "@/lib/db/train-db"
 import { trainsets, fitnessCertificates, jobCards } from "@/lib/db/train-schema"
 import { eq, and } from "drizzle-orm"
+import { withAuth, withOperatorRole } from "@/lib/auth-middleware"
 
 // GET /api/train/trainsets - Retrieve all trainsets with their status
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
@@ -66,10 +67,10 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching trainsets:", error)
     return NextResponse.json({ success: false, error: "Failed to fetch trainsets" }, { status: 500 })
   }
-}
+})
 
 // POST /api/train/trainsets - Create a new trainset
-export async function POST(request: NextRequest) {
+export const POST = withOperatorRole(async (request: NextRequest) => {
   try {
     const body = await request.json()
 
@@ -100,10 +101,10 @@ export async function POST(request: NextRequest) {
     console.error("Error creating trainset:", error)
     return NextResponse.json({ success: false, error: "Failed to create trainset" }, { status: 500 })
   }
-}
+})
 
 // PUT /api/train/trainsets/[id] - Update trainset status or details
-export async function PUT(request: NextRequest) {
+export const PUT = withOperatorRole(async (request: NextRequest) => {
   try {
     const body = await request.json()
     const url = new URL(request.url)
@@ -138,4 +139,4 @@ export async function PUT(request: NextRequest) {
     console.error("Error updating trainset:", error)
     return NextResponse.json({ success: false, error: "Failed to update trainset" }, { status: 500 })
   }
-}
+})

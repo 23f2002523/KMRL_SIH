@@ -8,6 +8,13 @@
       "when": 1759323414481,
       "tag": "0000_wide_micromax",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1759350526559,
+      "tag": "0001_yellow_reaper",
+      "breakpoints": true
     }
   ]
 }

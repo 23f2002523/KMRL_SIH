@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { MainLayout } from "@/components/main-layout"
+import { ProtectedRoute } from "@/components/protected-route"
 import { EnhancedTrainMetricsCards } from "@/components/train/enhanced-train-metrics-cards"
 import { TrainStatusTable } from "@/components/train/train-status-table"
 import { Breadcrumbs } from "@/components/ui/breadcrumbs"
@@ -9,6 +10,25 @@ import { DashboardSkeleton } from "@/components/ui/enhanced-skeleton"
 import { customToast } from "@/components/ui/toast-provider"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { useLanguage } from "@/hooks/use-language"
+import { useAuth } from "@/hooks/use-auth"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { 
+  Crown, 
+  Shield, 
+  Eye, 
+  BarChart3, 
+  Settings,
+  Users,
+  Bell,
+  Upload,
+  Search,
+  Workflow,
+  Archive,
+  Zap
+} from "lucide-react"
+import Link from "next/link"
 
 interface Trainset {
   id: number
@@ -32,7 +52,130 @@ interface Metrics {
   alerts: number
 }
 
-export default function OverviewPage() {
+function QuickAccessPanel() {
+  const { user } = useAuth()
+
+  const adminItems = [
+    { title: "Admin Dashboard", href: "/admin", icon: Crown, description: "System administration", badge: "New" },
+    { title: "User Management", href: "/admin/users", icon: Shield, description: "Manage system users" },
+  ]
+
+  const demoItems = [
+    { title: "RBAC Demo", href: "/rbac-demo", icon: Eye, description: "Role-based access control", badge: "Demo" },
+    { title: "Error Testing", href: "/error-test", icon: Bell, description: "Error handling test", badge: "Test" },
+  ]
+
+  const quickItems = [
+    { title: "Upload", href: "/upload", icon: Upload, description: "Upload files" },
+    { title: "Search", href: "/search", icon: Search, description: "Search content" },
+    { title: "Users", href: "/users", icon: Users, description: "View users" },
+  ]
+
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <Zap className="h-5 w-5" />
+          Quick Access
+        </h2>
+        <Badge variant="outline" className="text-xs">
+          Role: {user?.role}
+        </Badge>
+      </div>
+
+      <div className="grid gap-6">
+        {/* Admin Section */}
+        {user?.role === 'Admin' && (
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+              <Crown className="h-4 w-4" />
+              Administration
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+              {adminItems.map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center gap-2 text-sm">
+                        <item.icon className="h-4 w-4" />
+                        {item.title}
+                        {item.badge && (
+                          <Badge variant="secondary" className="text-xs">
+                            {item.badge}
+                          </Badge>
+                        )}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <CardDescription className="text-xs">{item.description}</CardDescription>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Demo Section */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+            <Eye className="h-4 w-4" />
+            Demo & Testing
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            {demoItems.map((item) => (
+              <Link key={item.href} href={item.href}>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <item.icon className="h-4 w-4" />
+                      {item.title}
+                      {item.badge && (
+                        <Badge variant="outline" className="text-xs">
+                          {item.badge}
+                        </Badge>
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <CardDescription className="text-xs">{item.description}</CardDescription>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Features */}
+        <div>
+          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Main Features
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {quickItems.map((item) => (
+              <Link key={item.href} href={item.href}>
+                <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <item.icon className="h-4 w-4" />
+                      {item.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <CardDescription className="text-xs">{item.description}</CardDescription>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function OverviewPage() {
   const { t } = useLanguage()
   const [metrics, setMetrics] = useState<Metrics>({
     totalTrainsets: 0,
@@ -227,6 +370,9 @@ export default function OverviewPage() {
           <EnhancedTrainMetricsCards metrics={metrics} showCharts={true} />
         </div>
 
+        {/* Quick Access Panel */}
+        <QuickAccessPanel />
+
         {/* Trainset Status Table */}
         <TrainStatusTable 
           trainsets={trainsets}
@@ -239,5 +385,14 @@ export default function OverviewPage() {
         />
       </div>
     </MainLayout>
+  )
+}
+
+// Wrap the component with authentication protection
+export default function ProtectedOverviewPage() {
+  return (
+    <ProtectedRoute requiredRole="Viewer">
+      <OverviewPage />
+    </ProtectedRoute>
   )
 }

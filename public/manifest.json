@@ -1,7 +1,7 @@
 {
-  "name": "KMRL Smart Document Assistant",
-  "short_name": "KMRL Docs",
-  "description": "Intelligent Document Management System for Kochi Metro Rail Limited",
+  "name": "KMRL Train Management System",
+  "short_name": "KMRL Train",
+  "description": "Train Management System for Kochi Metro Rail Limited",
   "start_url": "/mobile",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -1,18 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+
 import {
   CommandDialog,
   CommandEmpty,
@@ -31,11 +26,18 @@ import {
   Sun,
   Moon,
   Monitor,
-  Contrast
+  Contrast,
+  Crown,
+  Shield,
+  Eye,
+  FileText,
+  Brain,
+  BarChart3
 } from "lucide-react"
 import { useTheme } from "next-themes"
 import { useHighContrast } from "@/hooks/use-high-contrast"
-import { useLanguage } from "@/hooks/use-language"
+import { useAuth } from "@/hooks/use-auth"
+import { QuickAccessDropdown } from "@/components/quick-access-dropdown"
 
 interface TopHeaderProps {
   onMenuToggle: () => void
@@ -53,14 +55,37 @@ export function TopHeader({ onMenuToggle, alertCount = 0 }: TopHeaderProps) {
   const [commandOpen, setCommandOpen] = useState(false)
   const [searchValue, setSearchValue] = useState("")
   const [mounted, setMounted] = useState(false)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const { theme, setTheme } = useTheme()
   const { isHighContrast, toggleHighContrast } = useHighContrast()
-  const { language, setLanguage, t } = useLanguage()
+  const [language, setLanguage] = useState('en')
+  const { user, logout } = useAuth()
+  
+  // Simple translation function
+  const t = (key: string, fallback?: string) => fallback || key
+  const router = useRouter()
   const currentDate = new Date()
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside)
+      }
+    }
+  }, [dropdownOpen])
 
   const cycleTheme = () => {
     if (theme === 'light') setTheme('dark')
@@ -164,6 +189,9 @@ export function TopHeader({ onMenuToggle, alertCount = 0 }: TopHeaderProps) {
               )}
             </Button>
 
+            {/* Quick Access Dropdown */}
+            <QuickAccessDropdown user={user} />
+
             {/* Language Toggle */}
             <Button
               variant="ghost"
@@ -190,46 +218,119 @@ export function TopHeader({ onMenuToggle, alertCount = 0 }: TopHeaderProps) {
             )}
 
             {/* User Profile Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-10 w-10 rounded-full hover:bg-white/20 transition-all duration-200">
-                  <Avatar className="h-10 w-10 border-2 border-white/30">
-                    <AvatarImage src="/placeholder-user.jpg" alt="User" />
-                    <AvatarFallback className="bg-white/20 text-white">
-                      <User className="h-5 w-5" />
-                    </AvatarFallback>
-                  </Avatar>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56" align="end" forceMount>
-                <DropdownMenuLabel className="font-normal">
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">KMRL Admin</p>
-                    <p className="text-xs leading-none text-muted-foreground">
-                      admin@kmrl.co.in
-                    </p>
+            <div className="relative" ref={dropdownRef}>
+              <div 
+                className="relative h-10 w-10 rounded-full hover:bg-white/20 cursor-pointer flex items-center justify-center transition-all duration-200"
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  console.log('Profile clicked, current state:', dropdownOpen)
+                  console.log('Click event triggered')
+                  setDropdownOpen(prev => {
+                    console.log('Setting dropdown to:', !prev)
+                    return !prev
+                  })
+                }}
+                onMouseDown={(e) => {
+                  console.log('Mouse down event')
+                }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setDropdownOpen(!dropdownOpen)
+                  }
+                }}
+              >
+                <Avatar className="h-10 w-10 border-2 border-white/30">
+                  <AvatarImage src="/placeholder-user.jpg" alt="User" />
+                  <AvatarFallback className="bg-white/20 text-white">
+                    <User className="h-5 w-5" />
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              
+              {dropdownOpen && (
+                <div 
+                  className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-[9999] py-1"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none text-gray-900 dark:text-gray-100">
+                        KMRL Admin
+                      </p>
+                      <p className="text-xs leading-none text-gray-500 dark:text-gray-400">
+                        admin@kmrl.co.in
+                      </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900 px-2.5 py-0.5 text-xs font-medium text-blue-800 dark:text-blue-200">
+                          Admin
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Profile</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={toggleHighContrast}>
-                  <Contrast className="mr-2 h-4 w-4" />
-                  <span>{isHighContrast ? 'Disable' : 'Enable'} High Contrast</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Log out</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  
+                  <div className="py-1">
+                    <button
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      onClick={() => {
+                        console.log('Profile clicked')
+                        setDropdownOpen(false)
+                      }}
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      <span>Profile</span>
+                    </button>
+                    
+                    <button
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      onClick={() => {
+                        console.log('Settings clicked')
+                        setDropdownOpen(false)
+                      }}
+                    >
+                      <Settings className="mr-2 h-4 w-4" />
+                      <span>Settings</span>
+                    </button>
+                    
+                    <button
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      onClick={() => {
+                        console.log('High contrast toggled')
+                        setDropdownOpen(false)
+                        toggleHighContrast()
+                      }}
+                    >
+                      <Contrast className="mr-2 h-4 w-4" />
+                      <span>{isHighContrast ? 'Disable' : 'Enable'} High Contrast</span>
+                    </button>
+                    
+                    <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                    
+                    <button
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      onClick={() => {
+                        console.log('Logout clicked')
+                        setDropdownOpen(false)
+                        // Clear authentication state
+                        logout()
+                        // Force redirect to login page
+                        router.push('/login')
+                        // Fallback: force page reload to login
+                        setTimeout(() => {
+                          window.location.href = '/login'
+                        }, 100)
+                      }}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Log out</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>

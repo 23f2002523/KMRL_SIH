@@ -91,7 +91,7 @@ export default function MobileHomePage() {
             {language === "en" ? "Welcome to KMRL" : "KMRL-ലേക്ക് സ്വാഗതം"}
           </h1>
           <p className="text-muted-foreground text-pretty">
-            {language === "en" ? "Smart Document Assistant" : "സ്മാർട്ട് ഡോക്യുമെന്റ് അസിസ്റ്റന്റ്"}
+            {language === "en" ? "Smart Train Management" : "സ്മാർട്ട് ട്രെയിൻ മാനേജ്മെന്റ്"}
           </p>
         </div>
 

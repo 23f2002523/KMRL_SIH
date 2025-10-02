@@ -14,7 +14,7 @@ import {
   AlertTriangle,
   RefreshCw
 } from "lucide-react"
-import { DocumentInductionService } from "@/lib/document-induction-service"
+// Document service removed - using static data for now
 import { useLanguage } from "@/hooks/use-language"
 
 interface InductionPlan {
@@ -74,13 +74,9 @@ export default function PlanPage() {
           
           if (priority === 'High') {
             try {
-              const enhancement = await DocumentInductionService.enhanceInductionDecision(
-                trainsetId, 
-                serialNo, 
-                baseDecision
-              )
-              enhancedDecision = enhancement.decision as "Service" | "Standby" | "Maintenance"
-              confidence = enhancement.confidence
+              // Static enhancement for high priority items
+              enhancedDecision = baseDecision
+              confidence = 0.92 // High confidence for mock data
             } catch (error) {
               console.error('Error enhancing decision with documents:', error)
             }
