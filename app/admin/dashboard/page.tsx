@@ -9,12 +9,10 @@ import { AdminMetricsCards } from '@/components/admin/admin-metrics-cards'
 import { AdminTrainOverview } from '@/components/admin/admin-train-overview'
 import { AdminSystemHealth } from '@/components/admin/admin-system-health'
 import { AdminUserActivity } from '@/components/admin/admin-user-activity'
-import AIPredictionsDashboard from '@/components/ai-predictions-dashboard'
 
 export default function AdminDashboard() {
   const { user } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [activeSection, setActiveSection] = useState('overview')
 
   return (
     <RoleGuard role="Admin">
@@ -44,59 +42,22 @@ export default function AdminDashboard() {
                 </p>
               </div>
 
-              {/* Dashboard Navigation Tabs */}
-              <div className="mb-8 border-b border-gray-200">
-                <nav className="-mb-px flex space-x-8">
-                  <button
-                    onClick={() => setActiveSection('overview')}
-                    className={`${
-                      activeSection === 'overview'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                    } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium`}
-                  >
-                    Overview
-                  </button>
-                  <button
-                    onClick={() => setActiveSection('ai-predictions')}
-                    className={`${
-                      activeSection === 'ai-predictions'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                    } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium`}
-                  >
-                    AI Predictions
-                  </button>
-                </nav>
+              {/* Admin Metrics Cards */}
+              <AdminMetricsCards />
+
+              {/* Admin Dashboard Grid */}
+              <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
+                {/* Train Fleet Overview */}
+                <AdminTrainOverview />
+                
+                {/* System Health Monitor */}
+                <AdminSystemHealth />
               </div>
 
-              {/* Dashboard Content */}
-              {activeSection === 'overview' && (
-                <>
-                  {/* Admin Metrics Cards */}
-                  <AdminMetricsCards />
-
-                  {/* Admin Dashboard Grid */}
-                  <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
-                    {/* Train Fleet Overview */}
-                    <AdminTrainOverview />
-                    
-                    {/* System Health Monitor */}
-                    <AdminSystemHealth />
-                  </div>
-
-                  {/* User Activity & Logs */}
-                  <div className="mt-8">
-                    <AdminUserActivity />
-                  </div>
-                </>
-              )}
-
-              {activeSection === 'ai-predictions' && (
-                <div className="max-w-7xl">
-                  <AIPredictionsDashboard />
-                </div>
-              )}
+              {/* User Activity & Logs */}
+              <div className="mt-8">
+                <AdminUserActivity />
+              </div>
             </div>
           </main>
         </div>

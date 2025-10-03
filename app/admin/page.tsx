@@ -41,8 +41,12 @@ import {
   Eye,
   Database,
   Server,
-  Lock
+  Lock,
+  Calendar,
+  PieChart
 } from 'lucide-react'
+import AdminMaintenanceSchedule from '@/components/admin/admin-maintenance-schedule'
+import AdminStatusCharts from '@/components/admin/admin-status-charts'
 
 interface User {
   userId: number
@@ -206,12 +210,30 @@ export default function AdminDashboardPage() {
           </Card>
         </div>
 
-        <Tabs defaultValue="users" className="space-y-4">
+        <Tabs defaultValue="maintenance" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="maintenance">
+              <Calendar className="h-4 w-4 mr-2" />
+              Maintenance Schedule
+            </TabsTrigger>
+            <TabsTrigger value="analytics">
+              <PieChart className="h-4 w-4 mr-2" />
+              Analytics
+            </TabsTrigger>
             <TabsTrigger value="users">User Management</TabsTrigger>
             <TabsTrigger value="logs">System Logs</TabsTrigger>
             <TabsTrigger value="settings">System Settings</TabsTrigger>
           </TabsList>
+
+          {/* Maintenance Schedule */}
+          <TabsContent value="maintenance" className="space-y-4">
+            <AdminMaintenanceSchedule />
+          </TabsContent>
+
+          {/* Analytics Dashboard */}
+          <TabsContent value="analytics" className="space-y-4">
+            <AdminStatusCharts />
+          </TabsContent>
 
           {/* User Management */}
           <TabsContent value="users" className="space-y-4">

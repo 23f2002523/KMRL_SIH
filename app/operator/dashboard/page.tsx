@@ -11,8 +11,7 @@ import { OperatorAlerts } from '@/components/operator/operator-alerts'
 import OperatorFileUpload from '@/components/operator/operator-file-upload'
 import DebugAuth from '@/components/debug-auth'
 import OperatorUploadHistory from '@/components/operator/operator-upload-history'
-import AIPredictionsDashboard from '@/components/ai-predictions-dashboard'
-import AIPredictionsSummary from '@/components/ai-predictions-summary'
+import OperatorTrainList from '@/components/operator/operator-train-list'
 
 export default function OperatorDashboard() {
   const { user } = useAuth()
@@ -61,6 +60,16 @@ export default function OperatorDashboard() {
                     Overview
                   </button>
                   <button
+                    onClick={() => setActiveSection('trains')}
+                    className={`${
+                      activeSection === 'trains'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium`}
+                  >
+                    My Trains
+                  </button>
+                  <button
                     onClick={() => setActiveSection('upload')}
                     className={`${
                       activeSection === 'upload'
@@ -69,16 +78,6 @@ export default function OperatorDashboard() {
                     } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium`}
                   >
                     Upload Documents
-                  </button>
-                  <button
-                    onClick={() => setActiveSection('ai-predictions')}
-                    className={`${
-                      activeSection === 'ai-predictions'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                    } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium`}
-                  >
-                    AI Predictions
                   </button>
                 </nav>
               </div>
@@ -96,18 +95,18 @@ export default function OperatorDashboard() {
                       <OperatorTrainMonitor />
                     </div>
                     
-                    {/* Right Sidebar */}
-                    <div className="lg:col-span-1 space-y-6">
-                      {/* Active Alerts */}
+                    {/* Active Alerts */}
+                    <div className="lg:col-span-1">
                       <OperatorAlerts />
-                      
-                      {/* AI Predictions Summary */}
-                      <AIPredictionsSummary 
-                        onShowFull={() => setActiveSection('ai-predictions')}
-                      />
                     </div>
                   </div>
                 </>
+              )}
+
+              {activeSection === 'trains' && (
+                <div className="space-y-8">
+                  <OperatorTrainList />
+                </div>
               )}
 
               {activeSection === 'upload' && (
@@ -132,11 +131,7 @@ export default function OperatorDashboard() {
                 </div>
               )}
 
-              {activeSection === 'ai-predictions' && (
-                <div className="max-w-7xl">
-                  <AIPredictionsDashboard />
-                </div>
-              )}
+
             </div>
           </main>
         </div>

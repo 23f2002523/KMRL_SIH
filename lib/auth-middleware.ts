@@ -16,8 +16,8 @@ export function withAuth(handler: (req: AuthenticatedRequest) => Promise<NextRes
       let token = extractTokenFromHeader(authHeader)
 
       if (!token) {
-        // Try to get token from cookies
-        token = req.cookies.get('token')?.value || null
+        // Try to get token from cookies (check both 'token' and 'session_token')
+        token = req.cookies.get('token')?.value || req.cookies.get('session_token')?.value || null
       }
 
       if (!token) {

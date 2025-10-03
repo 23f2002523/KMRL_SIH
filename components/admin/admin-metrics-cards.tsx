@@ -7,7 +7,7 @@ export function AdminMetricsCards() {
   const metrics = [
     {
       title: 'Total Fleet Size',
-      value: '25',
+      value: '57',
       subtitle: 'Active Trainsets',
       icon: Train,
       color: 'text-blue-600',
@@ -15,8 +15,8 @@ export function AdminMetricsCards() {
     },
     {
       title: 'System Users',
-      value: '42',
-      subtitle: '15 Admin, 27 Operators',
+      value: '7',
+      subtitle: '2 Admin, 5 Operators',
       icon: Users,
       color: 'text-green-600',
       bgColor: 'bg-green-50',

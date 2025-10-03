@@ -2,17 +2,19 @@
 
 import { Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { X, Train, BarChart3, AlertTriangle, FileText, Clock } from 'lucide-react'
+import { X, Train, BarChart3, AlertTriangle, FileText, Clock, Users } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const operatorNavigation = [
   { name: 'Dashboard', href: '/operator/dashboard', icon: BarChart3, current: true },
+  { name: 'Upload', href: '/operator/upload', icon: FileText, current: false },
   { name: 'My Trains', href: '/operator/trains', icon: Train, current: false },
   { name: 'Active Alerts', href: '/operator/alerts', icon: AlertTriangle, current: false },
-  { name: 'Shift Reports', href: '/operator/reports', icon: FileText, current: false },
   { name: 'Schedule', href: '/operator/schedule', icon: Clock, current: false },
+  { name: 'Shifts', href: '/operator/shifts', icon: Users, current: false },
+  { name: 'Reports', href: '/operator/reports', icon: FileText, current: false },
 ]
 
 interface OperatorSidebarProps {

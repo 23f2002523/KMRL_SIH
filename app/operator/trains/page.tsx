@@ -6,57 +6,26 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Train, Play, Square, AlertTriangle, CheckCircle, Clock, Navigation } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Train, AlertTriangle, CheckCircle, Clock, Wrench, Search, RefreshCw, Eye } from 'lucide-react'
 
-interface TrainInfo {
+interface TrainData {
+  trainsetId: number
   trainId: string
-  line: string
-  currentStation: string
-  nextStation: string
-  status: 'running' | 'stopped' | 'maintenance' | 'delayed'
-  passengers: number
-  capacity: number
-  speed: number
+  lastMaintenanceDate: string
+  nextMaintenanceDate: string
+  maintenanceType: string
+  status: 'In Service' | 'Under Maintenance' | 'Idle'
+  healthStatus: 'Good' | 'Due Soon' | 'Critical'
+  daysUntilMaintenance: number
+  operatorAssigned?: string
 }
 
 export default function OperatorTrainsPage() {
   const { user, isAuthenticated } = useAuth()
   const router = useRouter()
-  const [selectedTrain, setSelectedTrain] = useState<string | null>(null)
-  const [trains] = useState<TrainInfo[]>([
-    {
-      trainId: 'KMRL-001',
-      line: 'Line 1 (Aluva - Palarivattom)',
-      currentStation: 'Kaloor',
-      nextStation: 'Lissie',
-      status: 'running',
-      passengers: 245,
-      capacity: 300,
-      speed: 65
-    },
-    {
-      trainId: 'KMRL-002',
-      line: 'Line 1 (Palarivattom - Aluva)',
-      currentStation: 'Edapally',
-      nextStation: 'Changampuzha Park',
-      status: 'running',
-      passengers: 180,
-      capacity: 300,
-      speed: 58
-    },
-    {
-      trainId: 'KMRL-003',
-      line: 'Line 1 (Aluva - Palarivattom)',
-      currentStation: 'Aluva Depot',
-      nextStation: 'Aluva',
-      status: 'maintenance',
-      passengers: 0,
-      capacity: 300,
-      speed: 0
-    }
-  ])
+  const [trains, setTrains] = useState<TrainData[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -65,64 +34,171 @@ export default function OperatorTrainsPage() {
     }
     
     if (user?.role !== 'Operator' && user?.role !== 'Admin') {
-      router.push('/')
+      console.log('User role check failed:', user?.role)
+      router.push('/login?error=unauthorized')
       return
     }
+
+    console.log('Fetching train maintenance data for user:', user?.email, 'Role:', user?.role)
+    fetchTrainMaintenanceData()
   }, [isAuthenticated, user, router])
 
+  const fetchTrainMaintenanceData = async () => {
+    try {
+      setLoading(true)
+      
+      // Check for auth token with the correct key name
+      let token = localStorage.getItem('kmrl-auth-token') || localStorage.getItem('authToken')
+      console.log('Token found:', !!token)
+      
+      // If no token but user is authenticated, try to get a token
+      if (!token && user && isAuthenticated) {
+        console.log('No token but user authenticated, getting debug token...')
+        try {
+          const tokenResponse = await fetch('/api/auth/debug-token', {
+            credentials: 'include'
+          })
+          if (tokenResponse.ok) {
+            const tokenData = await tokenResponse.json()
+            if (tokenData.success && tokenData.token) {
+              token = tokenData.token
+              localStorage.setItem('kmrl-auth-token', tokenData.token)
+              console.log('✅ Got debug token for user')
+            }
+          }
+        } catch (error) {
+          console.log('Failed to get debug token:', error)
+        }
+      }
+      
+      // Prepare request options - use both token and cookies for auth
+      const fetchOptions: RequestInit = {
+        method: 'GET',
+        credentials: 'include', // Include cookies for cookie-based auth
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+      
+      // Add token to headers if available
+      if (token) {
+        fetchOptions.headers = {
+          ...fetchOptions.headers,
+          'Authorization': `Bearer ${token}`,
+        }
+      }
+
+      console.log('Making API call to /api/operator/trains with options:', {
+        hasToken: !!token,
+        hasCredentials: fetchOptions.credentials
+      })
+      
+      const response = await fetch('/api/operator/trains', fetchOptions)
+
+      console.log('API response status:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API error:', response.status, errorText)
+        throw new Error(`Failed to fetch train maintenance data: ${response.status} ${errorText}`)
+      }
+
+      const result = await response.json()
+      console.log('API result:', result)
+      
+      if (result.success && result.data) {
+        setTrains(result.data)
+        console.log(`✅ Loaded ${result.count} train maintenance records from ${result.source}`)
+      } else {
+        console.error('API returned no data, using empty array')
+        setTrains([])
+      }
+    } catch (error) {
+      console.error('❌ Error fetching train maintenance data:', error)
+      // On error, show empty state rather than mock data
+      setTrains([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
   if (!user || (user.role !== 'Operator' && user.role !== 'Admin')) {
-    return null
+    return (
+      <div className="p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Access Denied
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              Current user: {user ? `${user.email} (${user.role})` : 'Not logged in'}
+            </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              This page requires Operator or Admin role access.
+            </p>
+            <Button onClick={() => router.push('/login')} variant="outline" size="sm">
+              Go to Login
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'running': return 'bg-green-500'
-      case 'stopped': return 'bg-yellow-500'
-      case 'maintenance': return 'bg-red-500'
-      case 'delayed': return 'bg-orange-500'
-      default: return 'bg-gray-500'
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'running': return <CheckCircle className="h-4 w-4" />
-      case 'stopped': return <Square className="h-4 w-4" />
-      case 'maintenance': return <AlertTriangle className="h-4 w-4" />
-      case 'delayed': return <Clock className="h-4 w-4" />
-      default: return <Train className="h-4 w-4" />
-    }
+  if (loading) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Train className="h-5 w-5" />
+              My Trains
+            </CardTitle>
+            <CardDescription>Loading train maintenance data...</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center h-48">
+              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Train Operations</h1>
-          <p className="text-gray-600 mt-1">Monitor and control KMRL train operations</p>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Train className="h-8 w-8 text-blue-600" />
+            My Trains
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Track your assigned trains maintenance status and schedules from uploaded Train_maintenance data
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Debug: User: {user?.email} | Role: {user?.role} | Authenticated: {isAuthenticated ? 'Yes' : 'No'}
+          </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Navigation className="h-4 w-4 mr-2" />
-            Route Map
-          </Button>
-          <Button className="bg-teal-600 hover:bg-teal-700" size="sm">
-            Emergency Stop All
-          </Button>
-        </div>
+        <Button onClick={fetchTrainMaintenanceData} variant="outline" size="sm" disabled={loading}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh Data
+        </Button>
       </div>
 
-      {/* Train Status Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Active Trains</p>
-                <p className="text-2xl font-bold text-green-600">2</p>
+                <p className="text-sm font-medium text-muted-foreground">Total Trains</p>
+                <p className="text-2xl font-bold">{trains.length}</p>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
+              <Train className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
@@ -131,10 +207,12 @@ export default function OperatorTrainsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">In Maintenance</p>
-                <p className="text-2xl font-bold text-red-600">1</p>
+                <p className="text-sm font-medium text-muted-foreground">In Service</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {trains.filter(t => t.status === 'In Service').length}
+                </p>
               </div>
-              <AlertTriangle className="h-8 w-8 text-red-500" />
+              <CheckCircle className="h-8 w-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
@@ -143,190 +221,109 @@ export default function OperatorTrainsPage() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Passengers</p>
-                <p className="text-2xl font-bold text-blue-600">425</p>
+                <p className="text-sm font-medium text-muted-foreground">Critical</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {trains.filter(t => t.healthStatus === 'Critical').length}
+                </p>
               </div>
-              <Train className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">System Status</p>
-                <p className="text-2xl font-bold text-green-600">Normal</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
+              <AlertTriangle className="h-8 w-8 text-red-600" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Train Details */}
-      <Tabs defaultValue="live" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="live">Live Operations</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule</TabsTrigger>
-          <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="live" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Train Operations Control</CardTitle>
-              <CardDescription>
-                Real-time train monitoring and control interface
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Train ID</TableHead>
-                    <TableHead>Line</TableHead>
-                    <TableHead>Current Station</TableHead>
-                    <TableHead>Next Station</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Passengers</TableHead>
-                    <TableHead>Speed</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {trains.map((train) => (
-                    <TableRow 
-                      key={train.trainId}
-                      className={selectedTrain === train.trainId ? 'bg-blue-50' : ''}
-                    >
-                      <TableCell className="font-medium">{train.trainId}</TableCell>
-                      <TableCell className="text-sm">{train.line}</TableCell>
-                      <TableCell>{train.currentStation}</TableCell>
-                      <TableCell>{train.nextStation}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="secondary" 
-                          className={`${getStatusColor(train.status)} text-white`}
-                        >
-                          <span className="flex items-center gap-1">
-                            {getStatusIcon(train.status)}
-                            {train.status}
-                          </span>
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span>{train.passengers}/{train.capacity}</span>
-                          <div className="w-16 bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="bg-blue-600 h-2 rounded-full" 
-                              style={{ width: `${(train.passengers / train.capacity) * 100}%` }}
-                            />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{train.speed} km/h</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          {train.status === 'running' ? (
-                            <Button size="sm" variant="outline" className="text-red-600">
-                              <Square className="h-3 w-3 mr-1" />
-                              Stop
-                            </Button>
-                          ) : train.status === 'stopped' ? (
-                            <Button size="sm" variant="outline" className="text-green-600">
-                              <Play className="h-3 w-3 mr-1" />
-                              Start
-                            </Button>
-                          ) : null}
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => setSelectedTrain(train.trainId)}
-                          >
-                            Monitor
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="schedule">
-          <Card>
-            <CardHeader>
-              <CardTitle>Train Schedule</CardTitle>
-              <CardDescription>
-                View and manage train schedules and timetables
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-gray-500">
-                <Train className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>Schedule management interface coming soon...</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="maintenance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Maintenance Operations</CardTitle>
-              <CardDescription>
-                View maintenance status and schedule maintenance activities
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="p-4 border rounded-lg bg-red-50 border-red-200">
-                  <div className="flex items-center gap-3">
-                    <AlertTriangle className="h-5 w-5 text-red-500" />
-                    <div className="flex-1">
-                      <h3 className="font-medium text-red-800">KMRL-003 - Scheduled Maintenance</h3>
-                      <p className="text-sm text-red-600">Brake system inspection and wheel maintenance</p>
-                      <p className="text-xs text-red-500 mt-1">Started: 2 hours ago | ETA: 4 hours</p>
+      <Card>
+        <CardHeader>
+          <CardTitle>Train List</CardTitle>
+          <CardDescription>
+            {trains.length > 0 
+              ? `Showing ${trains.length} trains from your uploaded Train_maintenance excel data`
+              : 'No train maintenance data found. Check browser console for API errors or login with operator@kmrl.co.in'
+            }
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {trains.map((train) => (
+              <div 
+                key={train.trainsetId} 
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  {train.healthStatus === 'Good' && <CheckCircle className="h-4 w-4 text-green-600" />}
+                  {train.healthStatus === 'Due Soon' && <Clock className="h-4 w-4 text-yellow-600" />}
+                  {train.healthStatus === 'Critical' && <AlertTriangle className="h-4 w-4 text-red-600" />}
+                  
+                  <div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="text-lg font-semibold">{train.trainId}</span>
+                      
+                      {train.status === 'In Service' && (
+                        <Badge className="bg-blue-100 text-blue-800">In Service</Badge>
+                      )}
+                      {train.status === 'Under Maintenance' && (
+                        <Badge className="bg-orange-100 text-orange-800">Under Maintenance</Badge>
+                      )}
+                      {train.status === 'Idle' && (
+                        <Badge className="bg-gray-100 text-gray-800">Idle</Badge>
+                      )}
+                      
+                      {train.healthStatus === 'Good' && (
+                        <Badge className="bg-green-100 text-green-800">Good</Badge>
+                      )}
+                      {train.healthStatus === 'Due Soon' && (
+                        <Badge className="bg-yellow-100 text-yellow-800">Due Soon</Badge>
+                      )}
+                      {train.healthStatus === 'Critical' && (
+                        <Badge className="bg-red-100 text-red-800">Critical</Badge>
+                      )}
                     </div>
-                    <Badge variant="destructive">In Progress</Badge>
+                    <div className="text-sm text-muted-foreground">
+                      <span className="font-medium">{train.maintenanceType}</span>
+                      {train.operatorAssigned && (
+                        <span> • Assigned to: {train.operatorAssigned}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                
+                <div className="text-right">
+                  <div className="text-sm font-medium mb-1">
+                    Last: {new Date(train.lastMaintenanceDate).toLocaleDateString()}
+                  </div>
+                  <div className="text-sm font-medium mb-1">
+                    Next: {new Date(train.nextMaintenanceDate).toLocaleDateString()}
+                  </div>
+                  <div className={`text-xs ${
+                    train.daysUntilMaintenance < 0 ? 'text-red-600 font-semibold' :
+                    train.daysUntilMaintenance <= 30 ? 'text-yellow-600 font-medium' : 
+                    'text-muted-foreground'
+                  }`}>
+                    {train.daysUntilMaintenance < 0 
+                      ? `${Math.abs(train.daysUntilMaintenance)} days overdue`
+                      : `${train.daysUntilMaintenance} days remaining`
+                    }
+                  </div>
+                </div>
 
-      {/* Operator-only Features Note */}
-      {user.role === 'Operator' && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="text-blue-800 flex items-center gap-2">
-              <Train className="h-5 w-5" />
-              Operator Access Level
-            </CardTitle>
-            <CardDescription className="text-blue-600">
-              You have operational control over train systems and scheduling
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 bg-white rounded-lg border">
-                <h3 className="font-medium text-gray-900">Train Control</h3>
-                <p className="text-sm text-gray-600 mt-1">Start, stop, and monitor train operations</p>
+                <div className="flex items-center gap-2 ml-4">
+                  <Button size="sm" variant="outline">
+                    <Eye className="h-4 w-4 mr-1" />
+                    Details
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant={train.healthStatus === 'Critical' ? 'destructive' : 'default'}
+                  >
+                    <Wrench className="h-4 w-4 mr-1" />
+                    {train.status === 'Under Maintenance' ? 'Update' : 'Schedule'}
+                  </Button>
+                </div>
               </div>
-              <div className="p-4 bg-white rounded-lg border">
-                <h3 className="font-medium text-gray-900">Service Status</h3>
-                <p className="text-sm text-gray-600 mt-1">View real-time service information</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

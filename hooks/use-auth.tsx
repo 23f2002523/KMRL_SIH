@@ -60,6 +60,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json()
         if (data.success) {
           setUser(data.data)
+          // If we got user data but don't have a token, it means cookie auth worked
+          // In this case, we should create a token for API calls
+          if (!authToken && data.token) {
+            const newToken = data.token
+            setToken(newToken)
+            localStorage.setItem('kmrl-auth-token', newToken)
+          }
         } else {
           // Token is invalid
           localStorage.removeItem('kmrl-auth-token')
