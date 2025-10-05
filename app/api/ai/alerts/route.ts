@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check permissions
-    if (!['Admin', 'Operator'].includes(userRole)) {
+    if (userRole !== 'Operator') {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
