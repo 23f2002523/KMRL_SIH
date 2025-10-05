@@ -39,17 +39,15 @@ export default function LoginPage() {
   const mouseRef = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      // Role-based redirect
-      if (user.role === 'Admin') {
-        router.push('/admin/dashboard')
-      } else if (user.role === 'Operator') {
+    if (isAuthenticated && user && !isLoading) {
+      // Role-based redirect for already authenticated users
+      if (user.role === 'Operator') {
         router.push('/operator/dashboard')
       } else {
         router.push('/') // Fallback
       }
     }
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, user, router, isLoading])
 
   // Initialize 3D Network Animation
   useEffect(() => {
@@ -334,8 +332,13 @@ export default function LoginPage() {
 
         <div className="backdrop-blur-sm bg-white/10 dark:bg-black/10 rounded-2xl p-6 border border-white/20 dark:border-white/10 shadow-xl">
           <AuthForm 
-            onSuccess={() => {
-              // Role-based redirect will be handled by useEffect
+            onSuccess={(user) => {
+              // Role-based redirect after successful login
+              if (user?.role === 'Operator') {
+                router.push('/operator/dashboard')
+              } else {
+                router.push('/')
+              }
             }} 
           />
         </div>
