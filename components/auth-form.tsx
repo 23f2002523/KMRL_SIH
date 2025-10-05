@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
 interface AuthFormProps {
-  onSuccess?: () => void
+  onSuccess?: (user?: any) => void
 }
 
 export function AuthForm({ onSuccess }: AuthFormProps) {
@@ -39,17 +39,16 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
     setSuccess('')
 
     const result = await login(loginData.email, loginData.password)
+    console.log('AuthForm login result:', result)
     
     if (result.success) {
       setSuccess('Login successful!')
-      setTimeout(() => {
-        onSuccess?.()
-      }, 1000)
+      // Call onSuccess with user data for proper redirect
+      onSuccess?.(result.user)
     } else {
       setError(result.error || 'Login failed')
+      setIsLoading(false)
     }
-    
-    setIsLoading(false)
   }
 
 
