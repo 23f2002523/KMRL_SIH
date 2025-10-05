@@ -6,9 +6,10 @@ import { Analytics } from "@vercel/analytics/next"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { ToastProvider } from "@/components/ui/toast-provider"
 import { HighContrastProvider } from "@/hooks/use-high-contrast"
-import { LanguageProvider } from "@/hooks/use-language"
+import { LanguageProvider } from "@/hooks/use-libre-translate"
 import { AuthProvider } from "@/hooks/use-auth"
 import { ErrorBoundary } from "@/components/error-boundary"
+import { ChatProvider } from "@/components/providers/chat-provider"
 import { Suspense } from "react"
 import "./globals.css"
 
@@ -32,8 +33,10 @@ export default function RootLayout({
               <HighContrastProvider>
                 <LanguageProvider>
                   <AuthProvider>
-                    {children}
-                    <ToastProvider />
+                    <ChatProvider>
+                      {children}
+                      <ToastProvider />
+                    </ChatProvider>
                   </AuthProvider>
                 </LanguageProvider>
               </HighContrastProvider>

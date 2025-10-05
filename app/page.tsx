@@ -16,13 +16,8 @@ export default function HomePage() {
     if (!isLoading) {
       if (isAuthenticated && user) {
         // Role-based redirect for authenticated users
-        if (user.role === 'Admin') {
-          router.replace("/admin/dashboard")
-        } else if (user.role === 'Operator') {
-          router.replace("/operator/dashboard")
-        } else {
-          router.replace("/overview") // Fallback
-        }
+        // Always redirect to operator dashboard since we only have operator sections now
+        router.replace("/operator/dashboard")
       } else {
         // Redirect unauthenticated users to login
         router.replace("/login")

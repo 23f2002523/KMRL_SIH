@@ -41,6 +41,11 @@
   --gradient-primary: linear-gradient(135deg, #00C2A2 0%, #14b8a6 100%);
   --gradient-secondary: linear-gradient(135deg, #e6fffa 0%, #f0fdfa 100%);
   --gradient-accent: linear-gradient(135deg, #00C2A2 0%, #06b6d4 100%);
+  
+  /* Page header styles */
+  --page-header-bg: var(--card);
+  --page-header-text: var(--card-foreground);
+  --page-header-subtitle: var(--muted-foreground);
 }
 
 .dark {
@@ -82,6 +87,11 @@
   --gradient-primary: linear-gradient(135deg, #00C2A2 0%, #14b8a6 100%);
   --gradient-secondary: linear-gradient(135deg, #164e41 0%, #1e293b 100%);
   --gradient-accent: linear-gradient(135deg, #00C2A2 0%, #06b6d4 100%);
+  
+  /* Dark mode page header styles */
+  --page-header-bg: var(--card);
+  --page-header-text: var(--card-foreground);
+  --page-header-subtitle: var(--muted-foreground);
 }
 
 @theme inline {

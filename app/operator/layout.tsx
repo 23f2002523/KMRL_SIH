@@ -14,7 +14,7 @@ export default function OperatorLayout({
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && user && user.role !== 'Admin' && user.role !== 'Operator') {
+    if (!isLoading && user && user.role !== 'Operator') {
       // Redirect unauthorized users away from operator routes
       router.push('/login')
     }
