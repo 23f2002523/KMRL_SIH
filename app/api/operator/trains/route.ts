@@ -21,7 +21,7 @@ async function handleGetTrains(request: AuthenticatedRequest) {
   try {
     const user = getCurrentUser(request)
     
-    if (!user || (user.role !== 'Operator' && user.role !== 'Admin')) {
+    if (!user || user.role !== 'Operator') {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 

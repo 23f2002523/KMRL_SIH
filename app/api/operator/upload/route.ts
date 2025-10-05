@@ -8,6 +8,7 @@ import csvParser from 'csv-parser'
 import { trainDb } from '@/lib/db/train-db'
 import { uploadedDocuments, documentDataRecords } from '@/lib/db/train-schema'
 import jwt from 'jsonwebtoken'
+import { spawn } from 'child_process'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'kmrl-sih-2025-secret-key'
 
@@ -298,6 +299,36 @@ export async function POST(request: NextRequest) {
         .set({ processingStatus: 'completed' })
     }
 
+    // 🚀 AUTO-RETRAINING TRIGGER
+    console.log('🔄 Starting automatic model retraining...')
+    
+    // Trigger Python model retraining in background (don't wait for completion)
+    const pythonProcess = spawn('python', [
+      join(process.cwd(), 'ml', 'auto_retrain.py'),
+      filePath,
+      fileName
+    ], {
+      cwd: join(process.cwd(), 'ml'),
+      stdio: 'pipe'
+    })
+
+    // Log retraining output
+    pythonProcess.stdout.on('data', (data) => {
+      console.log('🐍 Auto-Retrain Output:', data.toString())
+    })
+
+    pythonProcess.stderr.on('data', (data) => {
+      console.error('🐍 Auto-Retrain Error:', data.toString())
+    })
+
+    pythonProcess.on('close', (code) => {
+      console.log(`🎯 Auto-retraining completed with code: ${code}`)
+    })
+
+    pythonProcess.on('error', (error) => {
+      console.error('❌ Auto-retraining process error:', error)
+    })
+
     return NextResponse.json({
       success: true,
       document: {
@@ -309,9 +340,10 @@ export async function POST(request: NextRequest) {
       },
       previewData: previewData.length > 0 ? previewData : null,
       totalRows: totalRows,
+      autoRetraining: true,
       message: fileType === 'pdf' 
-        ? 'PDF file uploaded successfully' 
-        : `File processed successfully. ${totalRows} rows imported.`
+        ? 'PDF file uploaded successfully. AI models are being retrained in background.' 
+        : `File processed successfully. ${totalRows} rows imported. AI models are being retrained for better predictions.`
     })
 
   } catch (error) {
