@@ -1,7 +1,8 @@
 "use client"
 
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useAuth } from '@/hooks/use-auth'
+import { useRouter } from 'next/navigation'
 
 interface RoleGuardProps {
   children: React.ReactNode
@@ -10,13 +11,25 @@ interface RoleGuardProps {
 }
 
 export function RoleGuard({ children, role, fallback }: RoleGuardProps) {
-  const { user } = useAuth()
+  const { user, isLoading } = useAuth()
+  const router = useRouter()
 
-  if (!user) {
-    return fallback || <div>Access denied. Please log in.</div>
+  useEffect(() => {
+    if (!isLoading && !user) {
+      // Redirect to login if not authenticated
+      router.push('/login')
+    }
+  }, [user, isLoading, router])
+
+  if (isLoading) {
+    return <div>Loading...</div>
   }
 
-  if (role && user.role !== role && user.role !== 'Admin') {
+  if (!user) {
+    return fallback || <div>Redirecting to login...</div>
+  }
+
+  if (role && user.role !== role) {
     return fallback || <div>Access denied. Insufficient privileges.</div>
   }
 
