@@ -33,8 +33,8 @@ export function ChatProvider({ children }: ChatProviderProps) {
   const [unreadCount, setUnreadCount] = useState(0)
   const pathname = usePathname()
   
-  // Don't show chatbot on login page
-  const shouldShowChatbot = pathname !== '/login'
+  // Don't show chatbot on landing page and login page
+  const shouldShowChatbot = pathname !== '/login' && pathname !== '/'
   
   console.log('ChatProvider render:', { pathname, shouldShowChatbot, isChatOpen })
   

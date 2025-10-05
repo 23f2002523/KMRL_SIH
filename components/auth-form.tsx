@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useAuth } from '@/hooks/use-auth'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
@@ -54,26 +53,22 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
 
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl text-center">KMRL Authentication</CardTitle>
-        <CardDescription className="text-center">
-          Sign in to access the Train Management System
-          <br />
-          <span className="text-xs text-amber-600 font-medium">
-            Admin and Operator access only
-          </span>
-        </CardDescription>
-      </CardHeader>
+    <div className="w-full max-w-md mx-auto">
+      <div className="space-y-1 mb-6">
+        <h2 className="text-2xl text-center font-bold text-white">Authentication</h2>
+        <p className="text-center text-gray-300">
+          Sign in to access smart decision dashboard
+        </p>
+      </div>
       
-      <CardContent>
+      <div>
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="login-email">Email</Label>
             <Input
               id="login-email"
               type="email"
-              placeholder="admin@kmrl.co.in"
+              placeholder="enter your mail"
               value={loginData.email}
               onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
               required
@@ -132,27 +127,23 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
             <AlertDescription className="text-green-700">{success}</AlertDescription>
           </Alert>
         )}
-      </CardContent>
+      </div>
       
-      <CardFooter className="flex flex-col space-y-2 text-center text-sm text-muted-foreground">
+      <div className="flex flex-col space-y-2 text-center text-sm text-gray-300 mt-6">
         <div className="grid grid-cols-1 gap-2 w-full">
-          <p className="text-xs font-medium text-gray-700">Demo Credentials:</p>
-          <div className="flex justify-center space-x-4 text-xs">
+          <p className="text-xs font-medium text-gray-300">Demo Credentials:</p>
+          <div className="flex justify-center text-xs">
             <div className="text-center">
-              <span className="block px-2 py-1 bg-blue-100 text-blue-800 rounded mb-1">Admin</span>
-              <code className="text-xs">admin@kmrl.co.in</code>
-            </div>
-            <div className="text-center">
-              <span className="block px-2 py-1 bg-green-100 text-green-800 rounded mb-1">Operator</span>
-              <code className="text-xs">operator@kmrl.co.in</code>
+              <span className="block px-2 py-1 bg-green-100/20 text-green-300 rounded mb-1">Operator</span>
+              <code className="text-xs text-gray-300">operator@kmrl.co.in</code>
             </div>
           </div>
-          <p className="text-xs text-gray-600">Password: <code>password123</code></p>
+          <p className="text-xs text-gray-300">Password: <code>password123</code></p>
         </div>
-        <p className="text-xs text-gray-500 mt-2">
+        <p className="text-xs text-gray-400 mt-2">
           Contact system administrator for account access
         </p>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   )
 }
