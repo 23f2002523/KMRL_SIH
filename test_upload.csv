@@ -1,0 +1,6 @@
+Train_ID,Availability_Score,Maintenance_Score,Alert_Count,Fitness_Status,Job_Card_Priority,Brand_Category,Mileage,Station_Capacity,Cleaning_Slot
+T001,85,92,1,Valid,High,Premium,45000,4,Morning
+T002,78,88,3,Valid,Medium,Standard,67000,3,Afternoon
+T003,91,95,0,Valid,High,Premium,23000,5,Evening
+T004,82,76,2,Expired,Low,Basic,89000,2,Morning
+T005,96,98,0,Valid,High,Premium,12000,6,Afternoon
