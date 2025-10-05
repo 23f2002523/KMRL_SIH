@@ -7,7 +7,7 @@ export interface User {
   userId: number
   email: string
   name: string
-  role: 'Admin' | 'Operator' | 'Viewer'
+  role: 'Operator' | 'Viewer'
 }
 
 interface AuthContextType {
@@ -15,9 +15,9 @@ interface AuthContextType {
   token: string | null
   isLoading: boolean
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; user?: User }>
   logout: () => void
-  hasRole: (requiredRole: 'Admin' | 'Operator' | 'Viewer') => boolean
+  hasRole: (requiredRole: 'Operator' | 'Viewer') => boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -88,6 +88,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('Sending login request:', { email, password })
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -97,17 +98,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       })
 
       const data = await response.json()
+      console.log('Login response:', { status: response.status, data })
+      console.log('Response data detailed:', JSON.stringify(data, null, 2))
+      console.log('Response headers:', response.headers)
+      console.log('Response ok:', response.ok)
 
-      if (data.success) {
+      if (response.ok && data.success) {
         const { user: userData, token: authToken } = data.data
         setUser(userData)
         setToken(authToken)
         localStorage.setItem('kmrl-auth-token', authToken)
         handleSuccess('Login successful', `Welcome back, ${userData.name}!`)
-        return { success: true }
+        return { success: true, user: userData }
       } else {
-        handleError(data.error || 'Login failed', { showToast: true })
-        return { success: false, error: data.error }
+        console.log('Login failed - Response not ok or data.success false:', { responseOk: response.ok, dataSuccess: data.success, error: data.error })
+        handleError(data.error || `Login failed (Status: ${response.status})`, { showToast: true })
+        return { success: false, error: data.error || `HTTP ${response.status}` }
       }
     } catch (error) {
       handleError(error as Error, { 
@@ -127,6 +133,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Call logout API (optional)
     fetch('/api/auth/logout', { method: 'POST' }).catch(console.error)
+    
+    // Redirect to login page
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login'
+    }
   }
 
   const hasRole = (requiredRole: 'Admin' | 'Operator' | 'Viewer'): boolean => {
