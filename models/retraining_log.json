@@ -1,0 +1,53 @@
+[
+  {
+    "timestamp": "2025-10-03T17:56:49.208195",
+    "trigger_file": "sample.csv",
+    "total_data_rows": 400,
+    "model_accuracies": {
+      "fitness_certificate": 26.25,
+      "jobcard_optimizer": 92.46806273482481,
+      "branding_optimizer": 36.25,
+      "mileage_balancer": 0,
+      "resource_scheduler": 30.0,
+      "stabling_optimizer": 87.3551581047765,
+      "master_decision_engine": 65.0
+    },
+    "average_accuracy": 48.18903154851447,
+    "training_status": "completed",
+    "models_updated": 7
+  },
+  {
+    "timestamp": "2025-10-03T17:57:03.938793",
+    "trigger_file": "test_upload.csv",
+    "total_data_rows": 400,
+    "model_accuracies": {
+      "fitness_certificate": 31.25,
+      "jobcard_optimizer": 90.64059569659312,
+      "branding_optimizer": 28.749999999999996,
+      "mileage_balancer": 0,
+      "resource_scheduler": 32.5,
+      "stabling_optimizer": 87.03806417809363,
+      "master_decision_engine": 67.5
+    },
+    "average_accuracy": 48.239808553526686,
+    "training_status": "completed",
+    "models_updated": 7
+  },
+  {
+    "timestamp": "2025-10-03T17:57:32.835560",
+    "trigger_file": "test_upload.csv",
+    "total_data_rows": 400,
+    "model_accuracies": {
+      "fitness_certificate": 36.25,
+      "jobcard_optimizer": 93.16700259259429,
+      "branding_optimizer": 30.0,
+      "mileage_balancer": 0,
+      "resource_scheduler": 33.75,
+      "stabling_optimizer": 94.84287520414779,
+      "master_decision_engine": 68.75
+    },
+    "average_accuracy": 50.96569682810601,
+    "training_status": "completed",
+    "models_updated": 7
+  }
+]
