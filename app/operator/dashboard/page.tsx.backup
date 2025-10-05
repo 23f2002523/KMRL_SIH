@@ -1,0 +1,182 @@
+"use client"
+
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/hooks/use-auth'
+import { RoleGuard } from '@/hooks/use-role-access'
+import { OperatorSidebar } from '@/components/operator/operator-sidebar'
+import { OperatorHeader } from '@/components/operator/operator-header'
+import { AIInductionPanel } from '@/components/operator/ai-induction-panel'
+
+export default function OperatorDashboard() {
+  const { user } = useAuth()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState('overview')
+
+  // Sample data - replace with real API calls
+  const fitnessData = [
+    { trainId: 'K01', expiry: '2025-01-15', status: 'expiring', daysLeft: 11 },
+    { trainId: 'K02', expiry: '2025-01-08', status: 'expired', daysLeft: -4 },
+    { trainId: 'K03', expiry: '2025-03-20', status: 'valid', daysLeft: 75 },
+    { trainId: 'K04', expiry: '2025-02-12', status: 'expiring', daysLeft: 39 },
+    { trainId: 'K05', expiry: '2025-04-18', status: 'valid', daysLeft: 104 },
+  ]
+
+  const jobCardData = [
+    { trainId: 'K01', totalJobs: 8, pendingJobs: 2, criticalOpen: false },
+    { trainId: 'K02', totalJobs: 12, pendingJobs: 5, criticalOpen: true },
+    { trainId: 'K03', totalJobs: 6, pendingJobs: 0, criticalOpen: false },
+    { trainId: 'K04', totalJobs: 15, pendingJobs: 3, criticalOpen: false },
+    { trainId: 'K05', totalJobs: 9, pendingJobs: 1, criticalOpen: false },
+  ]
+
+  const brandingData = [
+    { trainId: 'K01', contract: 'Coca-Cola', achieved: 85, required: 90, priority: 'high' },
+    { trainId: 'K02', contract: 'Samsung', achieved: 95, required: 85, priority: 'normal' },
+    { trainId: 'K03', contract: 'None', achieved: 0, required: 0, priority: 'normal' },
+    { trainId: 'K04', contract: 'Nike', achieved: 70, required: 80, priority: 'high' },
+    { trainId: 'K05', contract: 'Apple', achieved: 92, required: 88, priority: 'normal' },
+  ]
+
+  const mileageData = [
+    { trainId: 'K01', mileage: 15800, avgMileage: 16200, status: 'balanced' },
+    { trainId: 'K02', mileage: 18500, avgMileage: 16200, status: 'high' },
+    { trainId: 'K03', mileage: 14200, avgMileage: 16200, status: 'low' },
+    { trainId: 'K04', mileage: 16800, avgMileage: 16200, status: 'balanced' },
+    { trainId: 'K05', mileage: 13900, avgMileage: 16200, status: 'low' },
+  ]
+
+  const cleaningData = [
+    { bay: 'Bay A', trainId: 'K01', staff: 'Available', status: 'In Progress', eta: '14:30' },
+    { bay: 'Bay B', trainId: 'K03', staff: 'Busy', status: 'Completed', eta: '13:45' },
+    { bay: 'Bay C', trainId: null, staff: 'Available', status: 'Free', eta: null },
+    { bay: 'Bay D', trainId: 'K04', staff: 'Available', status: 'Pending', eta: '15:00' },
+  ]
+
+  const stablingData = [
+    { position: 'A1', trainId: 'K01', status: 'occupied', moveScore: 2 },
+    { position: 'A2', trainId: null, status: 'free', moveScore: 0 },
+    { position: 'A3', trainId: 'K03', status: 'occupied', moveScore: 1 },
+    { position: 'B1', trainId: 'K02', status: 'occupied', moveScore: 3 },
+    { position: 'B2', trainId: 'K04', status: 'occupied', moveScore: 1 },
+    { position: 'B3', trainId: null, status: 'free', moveScore: 0 },
+    { position: 'C1', trainId: 'K05', status: 'occupied', moveScore: 2 },
+    { position: 'C2', trainId: null, status: 'free', moveScore: 0 },
+  ]
+
+  return (
+    <RoleGuard role="Operator">
+      <div className="min-h-screen bg-gray-50">
+        {/* Operator Sidebar */}
+        <OperatorSidebar />
+        
+        {/* Main Content */}
+        <div className="lg:pl-64">
+          {/* Operator Header */}
+          <OperatorHeader user={user} />
+          
+          {/* Operator Dashboard Content */}
+          <main className="py-8">
+            <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              {/* Welcome Message */}
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Welcome, {user?.name}
+                </h1>
+                <p className="mt-1 text-sm text-gray-600">
+                  Train Operations Dashboard - Monitor & Control Your Assigned Fleet
+                </p>
+              </div>
+
+              {/* Dashboard Navigation Tabs */}
+              <div className="mb-8 border-b border-gray-200">
+                <nav className="-mb-px flex space-x-8">
+                  <button
+                    onClick={() => setActiveSection('overview')}
+                    className={`${
+                      activeSection === 'overview'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium`}
+                  >
+                    Overview
+                  </button>
+                  <button
+                    onClick={() => setActiveSection('trains')}
+                    className={`${
+                      activeSection === 'trains'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium`}
+                  >
+                    My Trains
+                  </button>
+                  <button
+                    onClick={() => setActiveSection('upload')}
+                    className={`${
+                      activeSection === 'upload'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                    } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium`}
+                  >
+                    Upload Documents
+                  </button>
+                </nav>
+              </div>
+
+              {/* Dashboard Content */}
+              {activeSection === 'overview' && (
+                <>
+                  {/* Operator Metrics Cards */}
+                  <OperatorMetricsCards />
+
+                  {/* Operator Dashboard Grid */}
+                  <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
+                    {/* Train Monitoring */}
+                    <div className="lg:col-span-2">
+                      <OperatorTrainMonitor />
+                    </div>
+                    
+                    {/* Active Alerts */}
+                    <div className="lg:col-span-1">
+                      <OperatorAlerts />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {activeSection === 'trains' && (
+                <div className="space-y-8">
+                  <OperatorTrainList />
+                </div>
+              )}
+
+              {activeSection === 'upload' && (
+                <div className="max-w-6xl space-y-8">
+                  <DebugAuth />
+                  {/* Upload Section */}
+                  <div className="bg-white shadow rounded-lg p-6">
+                    <h2 className="text-lg font-medium text-gray-900 mb-6">
+                      Document Upload Center
+                    </h2>
+                    <p className="text-sm text-gray-600 mb-8">
+                      Upload Excel, CSV, or PDF files for processing and storage. 
+                      Data files will be automatically parsed and imported into the system.
+                    </p>
+                    <OperatorFileUpload />
+                  </div>
+
+                  {/* Upload History Section */}
+                  <div className="bg-white shadow rounded-lg p-6">
+                    <OperatorUploadHistory />
+                  </div>
+                </div>
+              )}
+
+
+            </div>
+          </main>
+        </div>
+      </div>
+    </RoleGuard>
+  )
+}
