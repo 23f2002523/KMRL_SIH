@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  requiredRole?: 'Admin' | 'Operator' | 'Viewer'
+  requiredRole?: 'Operator' | 'Viewer'
   fallbackUrl?: string
 }
 
@@ -85,7 +85,7 @@ export function ProtectedRoute({
 // Higher-order component for protecting pages
 export function withAuth<P extends object>(
   Component: React.ComponentType<P>,
-  requiredRole?: 'Admin' | 'Operator' | 'Viewer'
+  requiredRole?: 'Operator' | 'Viewer'
 ) {
   return function ProtectedComponent(props: P) {
     return (

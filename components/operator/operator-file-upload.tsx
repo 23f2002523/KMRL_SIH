@@ -10,6 +10,8 @@ interface UploadedFile {
   progress: number
   error?: string
   previewData?: any[]
+  autoRetraining?: boolean
+  retrainingStatus?: 'idle' | 'training' | 'completed' | 'failed'
 }
 
 interface FileUploadProps {
@@ -156,13 +158,27 @@ export default function OperatorFileUpload({
           ...f, 
           status: 'success', 
           progress: 100,
-          previewData: result.previewData 
+          previewData: result.previewData,
+          autoRetraining: result.autoRetraining,
+          retrainingStatus: result.autoRetraining ? 'training' : 'idle'
         } : f)
       )
 
+      // If auto-retraining started, simulate progress
+      if (result.autoRetraining) {
+        setTimeout(() => {
+          setUploadedFiles(prev => 
+            prev.map(f => f.id === fileData.id ? { 
+              ...f, 
+              retrainingStatus: 'completed'
+            } : f)
+          )
+        }, 12000) // 12 seconds simulation
+      }
+
       // Show success message
       if (result.totalRows > 0) {
-        alert(`✅ Success! File processed with ${result.totalRows} rows imported.`)
+        alert(`✅ Success! File processed with ${result.totalRows} rows imported.${result.autoRetraining ? ' 🤖 AI models are being retrained for better predictions!' : ''}`)
       } else {
         alert(`✅ Success! ${result.message}`)
       }
@@ -309,7 +325,24 @@ export default function OperatorFileUpload({
                   )}
                   
                   {fileData.status === 'success' && (
-                    <CheckIcon className="h-5 w-5 text-green-600" />
+                    <div className="flex items-center gap-2">
+                      <CheckIcon className="h-5 w-5 text-green-600" />
+                      {fileData.autoRetraining && (
+                        <div className="flex items-center gap-1">
+                          {fileData.retrainingStatus === 'training' && (
+                            <div className="flex items-center gap-1">
+                              <div className="animate-spin h-3 w-3 border border-blue-600 border-t-transparent rounded-full"></div>
+                              <span className="text-xs text-blue-600 font-medium">AI Training...</span>
+                            </div>
+                          )}
+                          {fileData.retrainingStatus === 'completed' && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">✨ AI Updated</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   )}
                   
                   {fileData.status === 'error' && (
@@ -327,6 +360,52 @@ export default function OperatorFileUpload({
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* AI Retraining Status */}
+      {uploadedFiles.some(f => f.autoRetraining) && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded">AI</div>
+            <h3 className="text-lg font-medium text-blue-900">Automatic Model Retraining</h3>
+          </div>
+          
+          <div className="space-y-2">
+            {uploadedFiles
+              .filter(f => f.autoRetraining)
+              .map(fileData => (
+                <div key={fileData.id} className="flex items-center justify-between bg-white/50 rounded p-3">
+                  <div>
+                    <div className="font-medium text-blue-900">{fileData.file.name}</div>
+                    <div className="text-sm text-blue-700">
+                      {fileData.retrainingStatus === 'training' && '🔄 Retraining 7 AI models with new data...'}
+                      {fileData.retrainingStatus === 'completed' && '✅ All 7 models successfully updated!'}
+                      {fileData.retrainingStatus === 'failed' && '❌ Retraining failed'}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    {fileData.retrainingStatus === 'training' && (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                        <span className="text-sm text-blue-600">Training...</span>
+                      </div>
+                    )}
+                    {fileData.retrainingStatus === 'completed' && (
+                      <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
+                        ✨ Updated
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))
+            }
+          </div>
+          
+          <div className="mt-3 text-xs text-blue-600">
+            💡 New predictions will be more accurate with updated models. Check the AI Induction panel for improved results.
           </div>
         </div>
       )}

@@ -1,106 +1,117 @@
 "use client"
 
 import { Menu, Transition } from '@headlessui/react'
-import { Bars3Icon, BellIcon, UserCircleIcon } from '@heroicons/react/24/outline'
-import { Fragment } from 'react'
+import { BellIcon, UserCircleIcon, ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import { Fragment, useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { ModeToggle } from '@/components/mode-toggle'
+import { LibreLanguageToggle } from '@/components/language/libre-language-toggle'
+import { TranslatedText } from '@/components/translation/libre-translated-text'
 
 interface OperatorHeaderProps {
   user: any
-  sidebarOpen: boolean
-  setSidebarOpen: (open: boolean) => void
+  isSidebarExpanded?: boolean
 }
 
-export function OperatorHeader({ user, sidebarOpen, setSidebarOpen }: OperatorHeaderProps) {
+export function OperatorHeader({ user, isSidebarExpanded = false }: OperatorHeaderProps) {
   const { logout } = useAuth()
+  const [language, setLanguage] = useState<'en' | 'ml'>('en')
+  const [searchQuery, setSearchQuery] = useState('')
 
   return (
-    <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
-      <button
-        type="button"
-        className="-m-2.5 p-2.5 text-gray-700 lg:hidden"
-        onClick={() => setSidebarOpen(true)}
-      >
-        <span className="sr-only">Open sidebar</span>
-        <Bars3Icon className="h-6 w-6" aria-hidden="true" />
-      </button>
-
-      {/* Separator */}
-      <div className="h-6 w-px bg-gray-200 lg:hidden" aria-hidden="true" />
-
-      <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-        <div className="flex flex-1 items-center">
-          <h1 className="text-lg font-semibold text-gray-900">
-            Train Operations Control
-          </h1>
+    <div 
+      className={`fixed top-0 right-0 left-0 z-[60] flex h-20 shrink-0 items-center justify-between border-b border-green-200/30 dark:border-green-700/30 bg-gradient-to-r from-white/95 to-green-50/95 dark:from-gray-800/95 dark:to-green-900/95 backdrop-blur-md px-4 shadow-sm sm:px-6 lg:px-8 transition-all duration-300 ${
+        isSidebarExpanded ? 'lg:left-64' : 'lg:left-16'
+      }`}
+    >
+      {/* Left side - Page Title */}
+      <div className="flex items-center min-w-0">
+        <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100 truncate">
+          <TranslatedText text="MetroMind AI" />
+        </h1>
+      </div>
+      
+      {/* Center - Search Box */}
+      <div className="flex-1 max-w-md mx-4 hidden sm:block">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" aria-hidden="true" />
+          </div>
+          <Input
+            type="text"
+            placeholder="Search trains, alerts, reports..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+          />
         </div>
-        <div className="flex items-center gap-x-4 lg:gap-x-6">
-          {/* Notifications button */}
-          <button
-            type="button"
-            className="-m-2.5 p-2.5 text-gray-400 hover:text-gray-500"
+      </div>
+      
+      {/* Right side controls */}
+      <div className="flex items-center gap-x-2 sm:gap-x-4">
+        {/* Language Toggle - Hidden on mobile */}
+        <div className="hidden sm:block">
+          <LibreLanguageToggle />
+        </div>
+        
+        {/* Theme Toggle */}
+        <ModeToggle />
+        
+        {/* Separator */}
+        <div className="hidden sm:block h-6 w-px bg-gray-200 dark:bg-gray-600" aria-hidden="true" />
+        {/* Profile dropdown */}
+        <Menu as="div" className="relative">
+          <Menu.Button className="flex items-center gap-x-1 rounded-md bg-white dark:bg-gray-800 px-2 py-2 text-sm font-semibold text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <UserCircleIcon className="h-6 w-6 text-gray-400 dark:text-gray-300" />
+            <ChevronDownIcon className="h-3 w-3 text-gray-400 dark:text-gray-300" />
+          </Menu.Button>
+          
+          <Transition
+            as={Fragment}
+            enter="transition ease-out duration-100"
+            enterFrom="transform opacity-0 scale-95"
+            enterTo="transform opacity-100 scale-100"
+            leave="transition ease-in duration-75"
+            leaveFrom="transform opacity-100 scale-100"
+            leaveTo="transform opacity-0 scale-95"
           >
-            <span className="sr-only">View notifications</span>
-            <BellIcon className="h-6 w-6" aria-hidden="true" />
-            {/* Alert badge */}
-            <div className="absolute -mt-6 -mr-2 h-3 w-3 bg-red-500 rounded-full"></div>
-          </button>
-
-          {/* Separator */}
-          <div className="hidden lg:block lg:h-6 lg:w-px lg:bg-gray-200" aria-hidden="true" />
-
-          {/* Profile dropdown */}
-          <Menu as="div" className="relative">
-            <Menu.Button className="-m-1.5 flex items-center p-1.5">
-              <span className="sr-only">Open user menu</span>
-              <UserCircleIcon className="h-8 w-8 text-gray-400" />
-              <span className="hidden lg:flex lg:items-center">
-                <span className="ml-4 text-sm font-semibold leading-6 text-gray-900" aria-hidden="true">
-                  {user?.name}
-                </span>
-              </span>
-            </Menu.Button>
-            <Transition
-              as={Fragment}
-              enter="transition ease-out duration-100"
-              enterFrom="transform opacity-0 scale-95"
-              enterTo="transform opacity-100 scale-100"
-              leave="transition ease-in duration-75"
-              leaveFrom="transform opacity-100 scale-100"
-              leaveTo="transform opacity-0 scale-95"
-            >
-              <Menu.Items className="absolute right-0 z-10 mt-2.5 w-32 origin-top-right rounded-md bg-white py-2 shadow-lg ring-1 ring-gray-900/5 focus:outline-none">
-                <Menu.Item>
-                  {({ active }) => (
-                    <a
-                      href="/operator/profile"
-                      className={cn(
-                        active ? 'bg-gray-50' : '',
-                        'block px-3 py-1 text-sm leading-6 text-gray-900'
-                      )}
-                    >
-                      Your profile
-                    </a>
-                  )}
-                </Menu.Item>
+            <Menu.Items className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white dark:bg-gray-800 py-1 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+              
+              <Menu.Item>
+                {({ active }) => (
+                  <div className={cn(
+                    active ? 'bg-gray-50 dark:bg-gray-700' : '',
+                    'px-4 py-2 text-sm text-gray-700 dark:text-gray-300'
+                  )}>
+                    <span className="font-medium">Role: </span>
+                    <Badge variant="outline" className="ml-1">
+                      {user?.role || 'Operator'}
+                    </Badge>
+                  </div>
+                )}
+              </Menu.Item>
+              
+              <div className="border-t border-gray-100 dark:border-gray-700">
                 <Menu.Item>
                   {({ active }) => (
                     <button
                       onClick={logout}
                       className={cn(
-                        active ? 'bg-gray-50' : '',
-                        'block w-full text-left px-3 py-1 text-sm leading-6 text-gray-900'
+                        active ? 'bg-gray-50 dark:bg-gray-700' : '',
+                        'block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                       )}
                     >
-                      Sign out
+                      Logout
                     </button>
                   )}
                 </Menu.Item>
-              </Menu.Items>
-            </Transition>
-          </Menu>
-        </div>
+              </div>
+            </Menu.Items>
+          </Transition>
+        </Menu>
       </div>
     </div>
   )
