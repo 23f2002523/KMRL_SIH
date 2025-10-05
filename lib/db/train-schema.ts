@@ -87,7 +87,7 @@ export const inductionPlans = sqliteTable("induction_plans", {
 export const trainUsers = sqliteTable("train_users", {
   userId: integer("user_id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
-  role: text("role", { enum: ["Admin", "Operator", "Viewer"] }).notNull().default("Viewer"),
+  role: text("role", { enum: ["Operator", "Viewer"] }).notNull().default("Viewer"),
   email: text("email").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   createdAt: integer("created_at", { mode: "timestamp" }).default(sql`CURRENT_TIMESTAMP`),
