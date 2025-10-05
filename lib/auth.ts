@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import jwt, { SignOptions } from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'kmrl-sih-2025-secret-key'
@@ -8,7 +8,7 @@ export interface UserPayload {
   userId: number
   email: string
   name: string
-  role: 'Admin' | 'Operator' | 'Viewer'
+  role: 'Operator' | 'Viewer'
 }
 
 export interface TokenPayload extends UserPayload {
@@ -20,7 +20,8 @@ export interface TokenPayload extends UserPayload {
  * Generate JWT token for user
  */
 export function generateToken(user: UserPayload): string {
-  return jwt.sign(user as any, JWT_SECRET as string, { expiresIn: JWT_EXPIRES_IN as string })
+  const payload = { userId: user.userId, email: user.email, name: user.name, role: user.role }
+  return jwt.sign(payload, JWT_SECRET!, { expiresIn: '7d' })
 }
 
 /**
@@ -62,9 +63,8 @@ export function extractTokenFromHeader(authHeader: string | null): string | null
 /**
  * Check if user has required role
  */
-export function hasRole(userRole: string, requiredRole: 'Admin' | 'Operator' | 'Viewer'): boolean {
+export function hasRole(userRole: string, requiredRole: 'Operator' | 'Viewer'): boolean {
   const roleHierarchy = {
-    'Admin': 3,
     'Operator': 2,
     'Viewer': 1
   }

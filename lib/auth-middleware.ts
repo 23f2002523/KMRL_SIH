@@ -54,7 +54,7 @@ export function withAuth(handler: (req: AuthenticatedRequest) => Promise<NextRes
  * Role-based authorization middleware
  */
 export function withRole(
-  requiredRole: 'Admin' | 'Operator' | 'Viewer',
+  requiredRole: 'Operator' | 'Viewer',
   handler: (req: AuthenticatedRequest) => Promise<NextResponse>
 ) {
   return withAuth(async (req: AuthenticatedRequest): Promise<NextResponse> => {
@@ -75,10 +75,10 @@ export function withRole(
 }
 
 /**
- * Admin-only middleware
+ * Admin-only middleware (deprecated - admin functionality removed)
  */
 export function withAdminRole(handler: (req: AuthenticatedRequest) => Promise<NextResponse>) {
-  return withRole('Admin', handler)
+  return withRole('Operator', handler)
 }
 
 /**
