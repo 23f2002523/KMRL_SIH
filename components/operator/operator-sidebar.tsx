@@ -1,32 +1,148 @@
 "use client"
 
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { X, Train, BarChart3, AlertTriangle, FileText, Clock, Users } from 'lucide-react'
+import { X, Train, BarChart3, AlertTriangle, FileText, Clock, Users, Upload, Menu, Brain, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
+import { useLanguage } from '@/hooks/use-libre-translate'
+import { TranslatedText } from '@/components/translation/libre-translated-text'
 
-const operatorNavigation = [
-  { name: 'Dashboard', href: '/operator/dashboard', icon: BarChart3, current: true },
-  { name: 'Upload', href: '/operator/upload', icon: FileText, current: false },
-  { name: 'My Trains', href: '/operator/trains', icon: Train, current: false },
-  { name: 'Active Alerts', href: '/operator/alerts', icon: AlertTriangle, current: false },
-  { name: 'Schedule', href: '/operator/schedule', icon: Clock, current: false },
-  { name: 'Shifts', href: '/operator/shifts', icon: Users, current: false },
-  { name: 'Reports', href: '/operator/reports', icon: FileText, current: false },
-]
+// Navigation will be created dynamically in component to use translations
 
 interface OperatorSidebarProps {
-  open: boolean
-  setOpen: (open: boolean) => void
+  onSidebarChange?: (isExpanded: boolean) => void
 }
 
-export function OperatorSidebar({ open, setOpen }: OperatorSidebarProps) {
+export function OperatorSidebar({ onSidebarChange }: OperatorSidebarProps) {
+  const pathname = usePathname()
+  const { } = useLanguage()
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  const operatorNavigation = [
+    { nameKey: 'Dashboard', href: '/operator/dashboard', icon: BarChart3, current: true },
+    { nameKey: 'Upload', href: '/operator/upload', icon: Upload, current: false },
+    { nameKey: 'AI Insights', href: '/operator/trains', icon: Brain, current: false },
+    { nameKey: 'Alerts', href: '/operator/alerts', icon: AlertTriangle, current: false },
+    { nameKey: 'Simulation', href: '/operator/schedule', icon: TrendingUp, current: false },
+    { nameKey: 'Reports', href: '/operator/reports', icon: FileText, current: false },
+  ]
+
+  const handleExpansionChange = (expanded: boolean) => {
+    setIsExpanded(expanded)
+    onSidebarChange?.(expanded)
+  }
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      {/* Hamburger Sidebar */}
+      <div 
+        className={cn(
+          "fixed left-0 top-0 z-50 h-full bg-gradient-to-b from-white/95 to-green-50/95 dark:from-gray-800/95 dark:to-green-900/95 backdrop-blur-md shadow-lg transition-all duration-300",
+          isExpanded ? "w-64" : "w-16"
+        )}
+        onMouseEnter={() => handleExpansionChange(true)}
+        onMouseLeave={() => handleExpansionChange(false)}
+      >
+        {/* Logo Header */}
+        <div className="flex h-16 items-center px-4 border-b border-green-200/30 dark:border-green-700/30">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white dark:bg-gray-700 border border-green-200 dark:border-green-600 shadow-sm">
+              <Image 
+                src="/logo.jpg" 
+                alt="MetroMind AI Logo" 
+                width={24} 
+                height={24} 
+                className="rounded-sm"
+              />
+            </div>
+            {isExpanded && (
+              <span className="text-lg font-bold text-green-600 dark:text-green-400 whitespace-nowrap">
+                MetroMind AI
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 px-2 py-4 space-y-2">
+          {operatorNavigation.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.nameKey}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative group",
+                  isActive
+                    ? "bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-green-600 dark:hover:text-green-400"
+                )}
+              >
+                <item.icon 
+                  className={cn(
+                    "h-5 w-5 flex-shrink-0",
+                    isActive ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500 group-hover:text-green-600 dark:group-hover:text-green-400"
+                  )} 
+                />
+                  {isExpanded && (
+                    <span className="font-medium whitespace-nowrap">
+                      <TranslatedText text={item.nameKey} />
+                    </span>
+                  )}
+                  
+                  {/* Tooltip for collapsed state */}
+                  {!isExpanded && (
+                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-sm rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                      <TranslatedText text={item.nameKey} />
+                    </div>
+                  )}
+                </Link>
+            )
+          })}
+        </nav>
+
+
+      </div>
+
+      {/* Mobile overlay */}
+      <div className="lg:hidden">
+        <MobileSidebar operatorNavigation={operatorNavigation} />
+      </div>
+    </div>
+  )
+}
+
+// Mobile sidebar component
+interface MobileSidebarProps {
+  operatorNavigation: Array<{
+    nameKey: string;
+    href: string;
+    icon: any;
+    current: boolean;
+  }>;
+}
+
+function MobileSidebar({ operatorNavigation }: MobileSidebarProps) {
+  const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
   return (
     <>
+      {/* Mobile menu button */}
+      <div className="fixed top-4 left-4 z-50 lg:hidden">
+        <button
+          type="button"
+          className="p-2 rounded-md bg-white shadow-md border border-gray-200"
+          onClick={() => setOpen(true)}
+        >
+          <Menu className="h-6 w-6 text-gray-600" />
+        </button>
+      </div>
+
       {/* Mobile sidebar */}
       <Transition.Root show={open} as={Fragment}>
         <Dialog as="div" className="relative z-50 lg:hidden" onClose={setOpen}>
@@ -69,22 +185,30 @@ export function OperatorSidebar({ open, setOpen }: OperatorSidebarProps) {
                     </button>
                   </div>
                 </Transition.Child>
+                
                 <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-white px-6 pb-4">
                   <div className="flex h-16 shrink-0 items-center">
-                    <span className="text-xl font-bold text-green-600">KMRL Operator</span>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600">
+                        <Train className="h-5 w-5 text-white" />
+                      </div>
+                      <span className="text-lg font-bold text-green-600">KMRL Operations</span>
+                    </div>
                   </div>
+                  
                   <nav className="flex flex-1 flex-col">
                     <ul role="list" className="flex flex-1 flex-col gap-y-7">
                       <li>
                         <ul role="list" className="-mx-2 space-y-1">
                           {operatorNavigation.map((item) => (
-                            <li key={item.name}>
+                            <li key={item.nameKey}>
                               <Link
                                 href={item.href}
+                                onClick={() => setOpen(false)}
                                 className={cn(
                                   pathname === item.href
-                                    ? 'bg-gray-50 text-green-600'
-                                    : 'text-gray-700 hover:text-green-600 hover:bg-gray-50',
+                                    ? 'bg-green-50 text-green-600'
+                                    : 'text-gray-700 hover:text-green-600 hover:bg-green-50',
                                   'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
                                 )}
                               >
@@ -95,7 +219,7 @@ export function OperatorSidebar({ open, setOpen }: OperatorSidebarProps) {
                                   )}
                                   aria-hidden="true"
                                 />
-                                {item.name}
+                                <TranslatedText text={item.nameKey} />
                               </Link>
                             </li>
                           ))}
@@ -109,45 +233,6 @@ export function OperatorSidebar({ open, setOpen }: OperatorSidebarProps) {
           </div>
         </Dialog>
       </Transition.Root>
-
-      {/* Static sidebar for desktop */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-gray-200 bg-white px-6 pb-4">
-          <div className="flex h-16 shrink-0 items-center">
-            <span className="text-xl font-bold text-green-600">KMRL Operations</span>
-          </div>
-          <nav className="flex flex-1 flex-col">
-            <ul role="list" className="flex flex-1 flex-col gap-y-7">
-              <li>
-                <ul role="list" className="-mx-2 space-y-1">
-                  {operatorNavigation.map((item) => (
-                    <li key={item.name}>
-                      <Link
-                        href={item.href}
-                        className={cn(
-                          pathname === item.href
-                            ? 'bg-gray-50 text-green-600'
-                            : 'text-gray-700 hover:text-green-600 hover:bg-gray-50',
-                          'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
-                        )}
-                      >
-                        <item.icon
-                          className={cn(
-                            pathname === item.href ? 'text-green-600' : 'text-gray-400 group-hover:text-green-600',
-                            'h-6 w-6 shrink-0'
-                          )}
-                          aria-hidden="true"
-                        />
-                        {item.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            </ul>
-          </nav>
-        </div>
-      </div>
     </>
   )
 }
