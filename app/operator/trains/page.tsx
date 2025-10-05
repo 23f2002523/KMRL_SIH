@@ -1,329 +1,491 @@
 "use client"
 
 import { useAuth } from '@/hooks/use-auth'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { TranslatedText } from '@/components/translation/translated-text'
+import { RoleGuard } from '@/hooks/use-role-access'
+import { OperatorSidebar } from '@/components/operator/operator-sidebar'
+import { OperatorHeader } from '@/components/operator/operator-header'
+import { AnimatedBackground } from '@/components/animated-background'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Train, AlertTriangle, CheckCircle, Clock, Wrench, Search, RefreshCw, Eye } from 'lucide-react'
-
-interface TrainData {
-  trainsetId: number
-  trainId: string
-  lastMaintenanceDate: string
-  nextMaintenanceDate: string
-  maintenanceType: string
-  status: 'In Service' | 'Under Maintenance' | 'Idle'
-  healthStatus: 'Good' | 'Due Soon' | 'Critical'
-  daysUntilMaintenance: number
-  operatorAssigned?: string
-}
+import { Train, Heart, Settings, Palette, Scale, Sparkles, Building, CheckCircle, AlertCircle, Circle, AlertTriangle } from 'lucide-react'
 
 export default function OperatorTrainsPage() {
-  const { user, isAuthenticated } = useAuth()
-  const router = useRouter()
-  const [trains, setTrains] = useState<TrainData[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login')
-      return
-    }
-    
-    if (user?.role !== 'Operator' && user?.role !== 'Admin') {
-      console.log('User role check failed:', user?.role)
-      router.push('/login?error=unauthorized')
-      return
-    }
-
-    console.log('Fetching train maintenance data for user:', user?.email, 'Role:', user?.role)
-    fetchTrainMaintenanceData()
-  }, [isAuthenticated, user, router])
-
-  const fetchTrainMaintenanceData = async () => {
-    try {
-      setLoading(true)
-      
-      // Check for auth token with the correct key name
-      let token = localStorage.getItem('kmrl-auth-token') || localStorage.getItem('authToken')
-      console.log('Token found:', !!token)
-      
-      // If no token but user is authenticated, try to get a token
-      if (!token && user && isAuthenticated) {
-        console.log('No token but user authenticated, getting debug token...')
-        try {
-          const tokenResponse = await fetch('/api/auth/debug-token', {
-            credentials: 'include'
-          })
-          if (tokenResponse.ok) {
-            const tokenData = await tokenResponse.json()
-            if (tokenData.success && tokenData.token) {
-              token = tokenData.token
-              localStorage.setItem('kmrl-auth-token', tokenData.token)
-              console.log('✅ Got debug token for user')
-            }
-          }
-        } catch (error) {
-          console.log('Failed to get debug token:', error)
-        }
-      }
-      
-      // Prepare request options - use both token and cookies for auth
-      const fetchOptions: RequestInit = {
-        method: 'GET',
-        credentials: 'include', // Include cookies for cookie-based auth
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-      
-      // Add token to headers if available
-      if (token) {
-        fetchOptions.headers = {
-          ...fetchOptions.headers,
-          'Authorization': `Bearer ${token}`,
-        }
-      }
-
-      console.log('Making API call to /api/operator/trains with options:', {
-        hasToken: !!token,
-        hasCredentials: fetchOptions.credentials
-      })
-      
-      const response = await fetch('/api/operator/trains', fetchOptions)
-
-      console.log('API response status:', response.status)
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('API error:', response.status, errorText)
-        throw new Error(`Failed to fetch train maintenance data: ${response.status} ${errorText}`)
-      }
-
-      const result = await response.json()
-      console.log('API result:', result)
-      
-      if (result.success && result.data) {
-        setTrains(result.data)
-        console.log(`✅ Loaded ${result.count} train maintenance records from ${result.source}`)
-      } else {
-        console.error('API returned no data, using empty array')
-        setTrains([])
-      }
-    } catch (error) {
-      console.error('❌ Error fetching train maintenance data:', error)
-      // On error, show empty state rather than mock data
-      setTrains([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  if (!user || (user.role !== 'Operator' && user.role !== 'Admin')) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Access Denied
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Current user: {user ? `${user.email} (${user.role})` : 'Not logged in'}
-            </p>
-            <p className="text-sm text-muted-foreground mb-4">
-              This page requires Operator or Admin role access.
-            </p>
-            <Button onClick={() => router.push('/login')} variant="outline" size="sm">
-              Go to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Train className="h-5 w-5" />
-              My Trains
-            </CardTitle>
-            <CardDescription>Loading train maintenance data...</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center h-48">
-              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState('fitness')
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false)
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Train className="h-8 w-8 text-blue-600" />
-            My Trains
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Track your assigned trains maintenance status and schedules from uploaded Train_maintenance data
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Debug: User: {user?.email} | Role: {user?.role} | Authenticated: {isAuthenticated ? 'Yes' : 'No'}
-          </p>
+    <RoleGuard role="Operator">
+      <div className="h-screen relative flex">
+        <AnimatedBackground />
+        <div className="relative z-10 w-full flex">
+        <OperatorSidebar onSidebarChange={setIsSidebarExpanded} />
+        
+        <div 
+          className={`flex-1 flex flex-col transition-all duration-300 ${
+            isSidebarExpanded ? 'lg:pl-64' : 'lg:pl-16'
+          }`}
+        >
+          <OperatorHeader user={user} isSidebarExpanded={isSidebarExpanded} />
+          
+          <main className="flex-1 overflow-auto pt-20 p-6 space-y-6">
+            <div className="bg-card text-card-foreground overflow-hidden shadow rounded-lg p-6 mb-6">
+              <div>
+                <h1 className="text-3xl font-bold flex items-center gap-2 text-foreground">
+                  <Train className="h-8 w-8 text-primary" />
+                  <TranslatedText text="AI-Powered Train Insights" />
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                  <TranslatedText text="Monitor train health, job cards, and branding priorities with AI-driven insights" />
+                </p>
+              </div>
+            </div>
+
+            {/* Deep-Dive Navigation Tabs */}
+            <div className="border-b border-gray-200 dark:border-gray-700">
+              <nav className="-mb-px flex space-x-8">
+                <button
+                  onClick={() => setActiveTab('fitness')}
+                  className={`${
+                    activeTab === 'fitness'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium flex items-center gap-1`}
+                >
+                  <Heart className="w-4 h-4" /> <TranslatedText text="Fitness Certificates" />
+                </button>
+                <button
+                  onClick={() => setActiveTab('jobcards')}
+                  className={`${
+                    activeTab === 'jobcards'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium flex items-center gap-1`}
+                >
+                  <Settings className="w-4 h-4" /> <TranslatedText text="Job Card Status" />
+                </button>
+                <button
+                  onClick={() => setActiveTab('branding')}
+                  className={`${
+                    activeTab === 'branding'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium flex items-center gap-1`}
+                >
+                  <Palette className="w-4 h-4" /> <TranslatedText text="Branding Priorities" />
+                </button>
+                <button
+                  onClick={() => setActiveTab('mileage')}
+                  className={`${
+                    activeTab === 'mileage'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium flex items-center gap-1`}
+                >
+                  <Scale className="w-4 h-4" /> Mileage Balancing
+                </button>
+                <button
+                  onClick={() => setActiveTab('cleaning')}
+                  className={`${
+                    activeTab === 'cleaning'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium flex items-center gap-1`}
+                >
+                  <Sparkles className="w-4 h-4" /> Cleaning Slots
+                </button>
+                <button
+                  onClick={() => setActiveTab('stabling')}
+                  className={`${
+                    activeTab === 'stabling'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  } whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium flex items-center gap-1`}
+                >
+                  <Building className="w-4 h-4" /> Stabling Geometry
+                </button>
+              </nav>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'fitness' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Heart className="w-5 h-5" /> Fitness Certificates - Expiry Status
+                  </CardTitle>
+                  <CardDescription>
+                    List of trains + expiry dates with highlighted expiring/expired trains
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Train ID</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expiry Date</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Left</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">K01</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2025-01-15</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">11</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Expiring</Badge>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">K02</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2025-01-08</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">4 overdue</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="destructive" className="flex items-center gap-1"><Circle className="w-3 h-3 fill-current" /> Expired</Badge>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">K03</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2025-03-20</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">75</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="default" className="bg-green-100 text-green-800 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Valid</Badge>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">K04</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2025-02-12</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">39</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Expiring</Badge>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">K05</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2025-04-18</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">104</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="default" className="bg-green-100 text-green-800 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Valid</Badge>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeTab === 'jobcards' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="w-5 h-5" /> Job-Card Status - Pending vs Closed
+                  </CardTitle>
+                  <CardDescription>
+                    Pending vs Closed jobs with AI flag for critical open work
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Train ID</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Jobs</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pending Jobs</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion %</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">AI Flag</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">K01</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">8</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">75%</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="default" className="bg-green-100 text-green-800 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Clear to Run</Badge>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">K02</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">12</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">5</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">58%</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="destructive" className="flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Critical Open → Cannot Run</Badge>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">K03</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">6</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">0</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">100%</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="default" className="bg-green-100 text-green-800 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Clear to Run</Badge>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeTab === 'branding' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="w-5 h-5" /> Branding Priorities - Contract Exposure Tracking
+                  </CardTitle>
+                  <CardDescription>
+                    Trains with active contracts, % achieved vs required exposure
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Train ID</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contract</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Achieved %</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Required %</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">K01</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Coca-Cola</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">85%</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">90%</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="destructive" className="flex items-center gap-1"><Circle className="w-3 h-3 fill-current" /> Must Run</Badge>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">K04</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Nike</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">70%</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">80%</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="destructive" className="flex items-center gap-1"><Circle className="w-3 h-3 fill-current" /> Must Run</Badge>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">K05</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Apple</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">92%</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">88%</td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="default" className="bg-green-100 text-green-800">🟢 Normal</Badge>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeTab === 'mileage' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Scale className="w-5 h-5" /> Mileage Balancing - Usage Distribution
+                  </CardTitle>
+                  <CardDescription>
+                    Graph: Trainset ID vs Mileage with AI suggestions for rotation
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <h4 className="text-md font-medium text-gray-700">Mileage Comparison Chart</h4>
+                      <div className="space-y-3">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 text-sm font-medium text-gray-900">K01</div>
+                          <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
+                            <div className="h-6 rounded-full bg-green-500" style={{width: "79%"}}></div>
+                            <div className="absolute top-0 h-6 w-1 bg-gray-800" style={{left: "81%"}} title="Average Mileage"></div>
+                          </div>
+                          <div className="w-20 text-sm text-gray-600">15,800km</div>
+                          <div className="w-16">
+                            <Badge variant="default" className="bg-green-100 text-green-800">OK</Badge>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 text-sm font-medium text-gray-900">K02</div>
+                          <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
+                            <div className="h-6 rounded-full bg-red-500" style={{width: "93%"}}></div>
+                            <div className="absolute top-0 h-6 w-1 bg-gray-800" style={{left: "81%"}} title="Average Mileage"></div>
+                          </div>
+                          <div className="w-20 text-sm text-gray-600">18,500km</div>
+                          <div className="w-16">
+                            <Badge variant="destructive">High</Badge>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 text-sm font-medium text-gray-900">K03</div>
+                          <div className="flex-1 bg-gray-200 rounded-full h-6 relative">
+                            <div className="h-6 rounded-full bg-blue-500" style={{width: "71%"}}></div>
+                            <div className="absolute top-0 h-6 w-1 bg-gray-800" style={{left: "81%"}} title="Average Mileage"></div>
+                          </div>
+                          <div className="w-20 text-sm text-gray-600">14,200km</div>
+                          <div className="w-16">
+                            <Badge variant="secondary" className="bg-blue-100 text-blue-800">Low</Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-blue-800 mb-2">🤖 AI Suggestions - Rotate Usage for Balance</h4>
+                      <ul className="text-sm text-blue-700 space-y-1">
+                        <li>• Prioritize K03 (low mileage) for tonight's operations</li>
+                        <li>• Rest K02 (high mileage) for maintenance cycle</li>
+                        <li>• Target 16,200km average across all trainsets</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeTab === 'cleaning' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5" /> Cleaning Slots - Bay Occupancy & Staff Availability
+                  </CardTitle>
+                  <CardDescription>
+                    Bay occupancy + staff availability, pending vs completed cleaning tasks
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-gray-900">Bay A</h4>
+                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">In Progress</Badge>
+                      </div>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <div>Train: K01</div>
+                        <div>Staff: Available</div>
+                        <div>ETA: 14:30</div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-gray-900">Bay B</h4>
+                        <Badge variant="default" className="bg-green-100 text-green-800">Completed</Badge>
+                      </div>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <div>Train: K03</div>
+                        <div>Staff: Busy</div>
+                        <div>ETA: 13:45</div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-gray-900">Bay C</h4>
+                        <Badge variant="secondary">Free</Badge>
+                      </div>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <div>Train: Empty</div>
+                        <div>Staff: Available</div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-sm font-medium text-gray-900">Bay D</h4>
+                        <Badge variant="destructive">Pending</Badge>
+                      </div>
+                      <div className="space-y-1 text-sm text-gray-600">
+                        <div>Train: K04</div>
+                        <div>Staff: Available</div>
+                        <div>ETA: 15:00</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeTab === 'stabling' && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building className="w-5 h-5" /> Stabling Geometry - Depot Grid View
+                  </CardTitle>
+                  <CardDescription>
+                    Simple depot grid view with Train IDs and AI-suggested positions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-md font-medium text-gray-700 mb-3">Current Positions</h4>
+                      <div className="grid grid-cols-3 gap-4 max-w-md">
+                        <div className="border-2 rounded-lg p-4 text-center border-blue-500 bg-blue-50">
+                          <div className="text-sm font-medium text-gray-900 mb-1">A1</div>
+                          <div className="text-lg font-bold text-blue-600">K01</div>
+                          <div className="text-xs text-gray-500 mt-1">Move Score: 2</div>
+                        </div>
+                        <div className="border-2 rounded-lg p-4 text-center border-gray-300 bg-gray-50 border-dashed">
+                          <div className="text-sm font-medium text-gray-900 mb-1">A2</div>
+                          <div className="text-lg font-bold text-blue-600">Empty</div>
+                        </div>
+                        <div className="border-2 rounded-lg p-4 text-center border-blue-500 bg-blue-50">
+                          <div className="text-sm font-medium text-gray-900 mb-1">A3</div>
+                          <div className="text-lg font-bold text-blue-600">K03</div>
+                          <div className="text-xs text-gray-500 mt-1">Move Score: 1</div>
+                        </div>
+                        <div className="border-2 rounded-lg p-4 text-center border-blue-500 bg-blue-50">
+                          <div className="text-sm font-medium text-gray-900 mb-1">B1</div>
+                          <div className="text-lg font-bold text-blue-600">K02</div>
+                          <div className="text-xs text-gray-500 mt-1">Move Score: 3</div>
+                        </div>
+                        <div className="border-2 rounded-lg p-4 text-center border-blue-500 bg-blue-50">
+                          <div className="text-sm font-medium text-gray-900 mb-1">B2</div>
+                          <div className="text-lg font-bold text-blue-600">K04</div>
+                          <div className="text-xs text-gray-500 mt-1">Move Score: 1</div>
+                        </div>
+                        <div className="border-2 rounded-lg p-4 text-center border-gray-300 bg-gray-50 border-dashed">
+                          <div className="text-sm font-medium text-gray-900 mb-1">B3</div>
+                          <div className="text-lg font-bold text-blue-600">Empty</div>
+                        </div>
+                        <div className="border-2 rounded-lg p-4 text-center border-blue-500 bg-blue-50">
+                          <div className="text-sm font-medium text-gray-900 mb-1">C1</div>
+                          <div className="text-lg font-bold text-blue-600">K05</div>
+                          <div className="text-xs text-gray-500 mt-1">Move Score: 2</div>
+                        </div>
+                        <div className="border-2 rounded-lg p-4 text-center border-gray-300 bg-gray-50 border-dashed">
+                          <div className="text-sm font-medium text-gray-900 mb-1">C2</div>
+                          <div className="text-lg font-bold text-blue-600">Empty</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <h4 className="text-sm font-medium text-green-800 mb-2">🤖 AI-Suggested Positions (Minimize Shunting Moves)</h4>
+                      <div className="text-sm text-green-700 space-y-1">
+                        <div>• Move K02 from B1 to A2 (reduces exit moves by 2)</div>
+                        <div>• Keep K01 in A1 (optimal for quick dispatch)</div>
+                        <div>• Position new arrivals in C2 for minimal interference</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </main>
         </div>
-        <Button onClick={fetchTrainMaintenanceData} variant="outline" size="sm" disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Data
-        </Button>
+        </div>
       </div>
-
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Trains</p>
-                <p className="text-2xl font-bold">{trains.length}</p>
-              </div>
-              <Train className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">In Service</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {trains.filter(t => t.status === 'In Service').length}
-                </p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Critical</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {trains.filter(t => t.healthStatus === 'Critical').length}
-                </p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Train List</CardTitle>
-          <CardDescription>
-            {trains.length > 0 
-              ? `Showing ${trains.length} trains from your uploaded Train_maintenance excel data`
-              : 'No train maintenance data found. Check browser console for API errors or login with operator@kmrl.co.in'
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {trains.map((train) => (
-              <div 
-                key={train.trainsetId} 
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  {train.healthStatus === 'Good' && <CheckCircle className="h-4 w-4 text-green-600" />}
-                  {train.healthStatus === 'Due Soon' && <Clock className="h-4 w-4 text-yellow-600" />}
-                  {train.healthStatus === 'Critical' && <AlertTriangle className="h-4 w-4 text-red-600" />}
-                  
-                  <div>
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="text-lg font-semibold">{train.trainId}</span>
-                      
-                      {train.status === 'In Service' && (
-                        <Badge className="bg-blue-100 text-blue-800">In Service</Badge>
-                      )}
-                      {train.status === 'Under Maintenance' && (
-                        <Badge className="bg-orange-100 text-orange-800">Under Maintenance</Badge>
-                      )}
-                      {train.status === 'Idle' && (
-                        <Badge className="bg-gray-100 text-gray-800">Idle</Badge>
-                      )}
-                      
-                      {train.healthStatus === 'Good' && (
-                        <Badge className="bg-green-100 text-green-800">Good</Badge>
-                      )}
-                      {train.healthStatus === 'Due Soon' && (
-                        <Badge className="bg-yellow-100 text-yellow-800">Due Soon</Badge>
-                      )}
-                      {train.healthStatus === 'Critical' && (
-                        <Badge className="bg-red-100 text-red-800">Critical</Badge>
-                      )}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      <span className="font-medium">{train.maintenanceType}</span>
-                      {train.operatorAssigned && (
-                        <span> • Assigned to: {train.operatorAssigned}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="text-right">
-                  <div className="text-sm font-medium mb-1">
-                    Last: {new Date(train.lastMaintenanceDate).toLocaleDateString()}
-                  </div>
-                  <div className="text-sm font-medium mb-1">
-                    Next: {new Date(train.nextMaintenanceDate).toLocaleDateString()}
-                  </div>
-                  <div className={`text-xs ${
-                    train.daysUntilMaintenance < 0 ? 'text-red-600 font-semibold' :
-                    train.daysUntilMaintenance <= 30 ? 'text-yellow-600 font-medium' : 
-                    'text-muted-foreground'
-                  }`}>
-                    {train.daysUntilMaintenance < 0 
-                      ? `${Math.abs(train.daysUntilMaintenance)} days overdue`
-                      : `${train.daysUntilMaintenance} days remaining`
-                    }
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 ml-4">
-                  <Button size="sm" variant="outline">
-                    <Eye className="h-4 w-4 mr-1" />
-                    Details
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant={train.healthStatus === 'Critical' ? 'destructive' : 'default'}
-                  >
-                    <Wrench className="h-4 w-4 mr-1" />
-                    {train.status === 'Under Maintenance' ? 'Update' : 'Schedule'}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    </RoleGuard>
   )
 }

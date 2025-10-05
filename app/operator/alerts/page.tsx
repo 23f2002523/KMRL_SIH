@@ -1,467 +1,410 @@
 "use client"
 
 import { useAuth } from '@/hooks/use-auth'
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { RoleGuard } from '@/hooks/use-role-access'
+import { useLanguage } from '@/hooks/use-libre-translate'
+import { TranslatedText } from '@/components/translation/libre-translated-text'
+import { OperatorSidebar } from '@/components/operator/operator-sidebar'
+import { OperatorHeader } from '@/components/operator/operator-header'
+import { AnimatedBackground } from '@/components/animated-background'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { AlertTriangle, Clock, Zap, Search, RefreshCw, Bell, X } from 'lucide-react'
+import { AlertTriangle, Clock, RefreshCw, Bell, CheckCircle, Shield, Zap, Calendar, Users, Train } from 'lucide-react'
 
-interface AlertData {
-  id: number
-  trainId: string
-  type: 'critical' | 'upcoming' | 'ai-predicted'
-  priority: 'High' | 'Medium' | 'Low'
+interface ConflictAlert {
+  id: string
+  type: 'telecom' | 'branding' | 'resources' | 'maintenance' | 'safety' | 'scheduling'
+  severity: 'critical' | 'warning' | 'info'
+  trainId?: string
   title: string
   description: string
-  daysOverdue?: number
-  daysUntilDue?: number
-  maintenanceType: string
-  lastMaintenanceDate: string
-  nextDueDate: string
-  severity: 'Critical' | 'Warning' | 'Info'
-  status: 'Active' | 'Acknowledged' | 'Resolved'
-  createdAt: string
+  impact: string
+  detectedAt: string
+  status: 'active' | 'acknowledged' | 'overridden' | 'resolved'
+  aiConfidence: number
 }
 
 export default function OperatorAlertsPage() {
-  const { user, isAuthenticated } = useAuth()
-  const router = useRouter()
-  const [alerts, setAlerts] = useState<AlertData[]>([])
-  const [filteredAlerts, setFilteredAlerts] = useState<AlertData[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState<'all' | 'critical' | 'upcoming' | 'ai-predicted'>('all')
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      router.push('/login')
-      return
+  const { user } = useAuth()
+  const { } = useLanguage()
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false)
+  const [alerts, setAlerts] = useState<ConflictAlert[]>([
+    {
+      id: 'AL001',
+      type: 'telecom',
+      severity: 'critical',
+      trainId: 'T-104',
+      title: 'Missing Telecom Clearance',
+      description: 'Train T-104 scheduled for departure but telecom safety clearance not received from control room',
+      impact: 'Cannot depart until clearance obtained - may delay 3 connecting services',
+      detectedAt: '2025-01-04 14:23',
+      status: 'active',
+      aiConfidence: 95
+    },
+    {
+      id: 'AL002', 
+      type: 'branding',
+      severity: 'warning',
+      trainId: 'T-115',
+      title: 'Branding Contract Breach Risk',
+      description: 'T-115 with Coca-Cola branding not scheduled for tonight - contract requires 90% exposure',
+      impact: 'Contract penalty ₹50k/day if exposure falls below threshold',
+      detectedAt: '2025-01-04 13:45',
+      status: 'active',
+      aiConfidence: 87
+    },
+    {
+      id: 'AL003',
+      type: 'resources',
+      severity: 'critical', 
+      trainId: undefined,
+      title: 'Cleaning Slots Overbooked',
+      description: 'Cleaning bay schedule shows 12 jobs allocated vs only 8 available staff members',
+      impact: '4 trains may miss cleaning slots - affects service readiness for tomorrow',
+      detectedAt: '2025-01-04 12:30',
+      status: 'active',
+      aiConfidence: 92
+    },
+    {
+      id: 'AL004',
+      type: 'maintenance',
+      severity: 'critical',
+      trainId: 'T-107',
+      title: 'Overdue Safety Inspection',
+      description: 'T-107 safety inspection expired 3 days ago but still scheduled for passenger service',
+      impact: 'Regulatory violation - train must be pulled from service immediately',
+      detectedAt: '2025-01-04 09:15',
+      status: 'acknowledged',
+      aiConfidence: 98
+    },
+    {
+      id: 'AL005',
+      type: 'scheduling',
+      severity: 'warning',
+      trainId: 'T-122',
+      title: 'Operator Rest Period Conflict',
+      description: 'Operator assigned to T-122 has insufficient rest period between shifts (6h vs required 8h)',
+      impact: 'Labor law violation risk - may need replacement operator',
+      detectedAt: '2025-01-04 08:00',
+      status: 'active',
+      aiConfidence: 89
+    },
+    {
+      id: 'AL006',
+      type: 'safety',
+      severity: 'warning',
+      trainId: 'T-101',
+      title: 'Weather Impact Alert',
+      description: 'Heavy rain forecast may affect T-101 route - reduced visibility conditions expected',
+      impact: 'May require speed restrictions or service suspension on affected sectors',
+      detectedAt: '2025-01-04 06:30',
+      status: 'active',
+      aiConfidence: 76
     }
-    
-    if (user?.role !== 'Operator' && user?.role !== 'Admin') {
-      console.log('User role check failed:', user?.role)
-      router.push('/login?error=unauthorized')
-      return
-    }
+  ])
 
-    console.log('Fetching alerts data for user:', user?.email, 'Role:', user?.role)
-    fetchAlertsData()
-  }, [isAuthenticated, user, router])
-
-  const fetchAlertsData = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      
-      // Check for auth token with the correct key name
-      let token = localStorage.getItem('kmrl-auth-token') || localStorage.getItem('authToken')
-      console.log('Token found:', !!token)
-      
-      // If no token but user is authenticated, try to get a token
-      if (!token && user && isAuthenticated) {
-        console.log('No token but user authenticated, getting debug token...')
-        try {
-          const tokenResponse = await fetch('/api/auth/debug-token', {
-            credentials: 'include'
-          })
-          if (tokenResponse.ok) {
-            const tokenData = await tokenResponse.json()
-            if (tokenData.success && tokenData.token) {
-              token = tokenData.token
-              localStorage.setItem('kmrl-auth-token', tokenData.token)
-              console.log('✅ Got debug token for user')
-            }
-          }
-        } catch (error) {
-          console.log('Failed to get debug token:', error)
-        }
-      }
-      
-      // Prepare request options - use both token and cookies for auth
-      const fetchOptions: RequestInit = {
-        method: 'GET',
-        credentials: 'include', // Include cookies for cookie-based auth
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-      
-      // Add token to headers if available
-      if (token) {
-        fetchOptions.headers = {
-          ...fetchOptions.headers,
-          'Authorization': `Bearer ${token}`,
-        }
-      }
-
-      console.log('Making API call to /api/operator/alerts')
-      const response = await fetch('/api/operator/alerts', fetchOptions)
-
-      console.log('API response status:', response.status)
-
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('API error:', response.status, errorText)
-        throw new Error(`Failed to fetch alerts data: ${response.status} ${errorText}`)
-      }
-
-      const result = await response.json()
-      console.log('API result:', result)
-      
-      if (result.success && result.data) {
-        setAlerts(result.data)
-        setFilteredAlerts(result.data)
-        console.log(`✅ Loaded ${result.data.length} alerts from maintenance data`)
-      } else {
-        console.error('API returned no data, using empty array')
-        setAlerts([])
-        setFilteredAlerts([])
-      }
-    } catch (error) {
-      console.error('❌ Error fetching alerts data:', error)
-      setError(error instanceof Error ? error.message : 'Failed to load alerts')
-      setAlerts([])
-      setFilteredAlerts([])
-    } finally {
-      setLoading(false)
-    }
+  const [filter, setFilter] = useState<'all' | 'active' | 'acknowledged' | 'critical'>('all')
+  
+  const handleAcknowledge = (alertId: string) => {
+    setAlerts(prev => prev.map(alert => 
+      alert.id === alertId 
+        ? { ...alert, status: 'acknowledged' }
+        : alert
+    ))
   }
 
-  useEffect(() => {
-    let filtered = alerts
+  const handleOverride = (alertId: string) => {
+    setAlerts(prev => prev.map(alert => 
+      alert.id === alertId 
+        ? { ...alert, status: 'overridden' }
+        : alert
+    ))
+  }
 
-    if (searchTerm) {
-      filtered = filtered.filter(alert => 
-        alert.trainId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        alert.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        alert.maintenanceType.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    }
-
-    if (filterType !== 'all') {
-      filtered = filtered.filter(alert => alert.type === filterType)
-    }
-
-    setFilteredAlerts(filtered)
-  }, [alerts, searchTerm, filterType])
-
-  const getAlertIcon = (type: string) => {
-    switch (type) {
+  const getFilteredAlerts = () => {
+    switch (filter) {
+      case 'active':
+        return alerts.filter(alert => alert.status === 'active')
+      case 'acknowledged':
+        return alerts.filter(alert => alert.status === 'acknowledged')
       case 'critical':
-        return <AlertTriangle className="h-5 w-5 text-red-600" />
-      case 'upcoming':
-        return <Clock className="h-5 w-5 text-yellow-600" />
-      case 'ai-predicted':
-        return <Zap className="h-5 w-5 text-blue-600" />
+        return alerts.filter(alert => alert.severity === 'critical')
       default:
-        return <Bell className="h-5 w-5 text-gray-600" />
+        return alerts.filter(alert => alert.status !== 'resolved')
     }
   }
 
-  const getSeverityBadge = (severity: string) => {
+  const getAlertIcon = (type: ConflictAlert['type']) => {
+    switch (type) {
+      case 'telecom': return <Zap className="h-5 w-5" />
+      case 'branding': return <Badge className="h-5 w-5" />
+      case 'resources': return <Users className="h-5 w-5" />
+      case 'maintenance': return <Train className="h-5 w-5" />
+      case 'safety': return <Shield className="h-5 w-5" />
+      case 'scheduling': return <Calendar className="h-5 w-5" />
+      default: return <AlertTriangle className="h-5 w-5" />
+    }
+  }
+
+  const getSeverityColor = (severity: ConflictAlert['severity']) => {
     switch (severity) {
-      case 'Critical':
-        return <Badge className="bg-red-100 text-red-800 hover:bg-red-200">🚨 Critical</Badge>
-      case 'Warning':
-        return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200">⚠️ Warning</Badge>
-      case 'Info':
-        return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">ℹ️ Info</Badge>
+      case 'critical': return 'text-red-600 bg-red-50 border-red-200'
+      case 'warning': return 'text-yellow-600 bg-yellow-50 border-yellow-200'
+      case 'info': return 'text-blue-600 bg-blue-50 border-blue-200'
+      default: return 'text-gray-600 bg-gray-50 border-gray-200'
+    }
+  }
+
+  const getStatusBadge = (status: ConflictAlert['status']) => {
+    switch (status) {
+      case 'active':
+        return <Badge variant="destructive"><TranslatedText text="Active" /></Badge>
+      case 'acknowledged':
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800"><TranslatedText text="Acknowledged" /></Badge>
+      case 'overridden':
+        return <Badge variant="secondary" className="bg-purple-100 text-purple-800"><TranslatedText text="Overridden" /></Badge>
+      case 'resolved':
+        return <Badge variant="default" className="bg-green-100 text-green-800"><TranslatedText text="Resolved" /></Badge>
       default:
         return <Badge variant="outline">Unknown</Badge>
     }
   }
 
-  const getPriorityBadge = (priority: string) => {
-    switch (priority) {
-      case 'High':
-        return <Badge className="bg-red-100 text-red-800">High Priority</Badge>
-      case 'Medium':
-        return <Badge className="bg-yellow-100 text-yellow-800">Medium Priority</Badge>
-      case 'Low':
-        return <Badge className="bg-green-100 text-green-800">Low Priority</Badge>
-      default:
-        return <Badge variant="outline">Unknown</Badge>
-    }
+  const stats = {
+    total: alerts.filter(a => a.status !== 'resolved').length,
+    active: alerts.filter(a => a.status === 'active').length,
+    critical: alerts.filter(a => a.severity === 'critical' && a.status !== 'resolved').length,
+    acknowledged: alerts.filter(a => a.status === 'acknowledged').length
   }
 
-  const getAlertCounts = () => {
-    return {
-      total: alerts.length,
-      critical: alerts.filter(a => a.type === 'critical').length,
-      upcoming: alerts.filter(a => a.type === 'upcoming').length,
-      aiPredicted: alerts.filter(a => a.type === 'ai-predicted').length,
-      active: alerts.filter(a => a.status === 'Active').length,
-    }
-  }
-
-  if (!user || (user.role !== 'Operator' && user.role !== 'Admin')) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Access Denied
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              Current user: {user ? `${user.email} (${user.role})` : 'Not logged in'}
-            </p>
-            <p className="text-sm text-muted-foreground mb-4">
-              This page requires Operator or Admin role access.
-            </p>
-            <Button onClick={() => router.push('/login')} variant="outline" size="sm">
-              Go to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Active Alerts
-            </CardTitle>
-            <CardDescription>Loading maintenance alerts...</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center h-48">
-              <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Error Loading Alerts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">{error}</p>
-            <Button onClick={fetchAlertsData} variant="outline" size="sm">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  const stats = getAlertCounts()
+  const filteredAlerts = getFilteredAlerts()
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Bell className="h-8 w-8 text-red-600" />
-            Active Alerts
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Critical overdue alerts, upcoming maintenance warnings, and AI-predicted risks from Train_maintenance data
-          </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Debug: User: {user?.email} | Role: {user?.role} | Authenticated: {isAuthenticated ? 'Yes' : 'No'}
-          </p>
-        </div>
-        <Button onClick={fetchAlertsData} variant="outline" size="sm" disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh Alerts
-        </Button>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Alerts</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
-              </div>
-              <Bell className="h-8 w-8 text-gray-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Critical Overdue</p>
-                <p className="text-2xl font-bold text-red-600">{stats.critical}</p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-red-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Upcoming Due</p>
-                <p className="text-2xl font-bold text-yellow-600">{stats.upcoming}</p>
-              </div>
-              <Clock className="h-8 w-8 text-yellow-600" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">AI Predicted</p>
-                <p className="text-2xl font-bold text-blue-600">{stats.aiPredicted}</p>
-              </div>
-              <Zap className="h-8 w-8 text-blue-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by Train ID, alert title, or maintenance type..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-80"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant={filterType === 'all' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('all')}
-              >
-                All
-              </Button>
-              <Button
-                variant={filterType === 'critical' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('critical')}
-              >
-                Critical
-              </Button>
-              <Button
-                variant={filterType === 'upcoming' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('upcoming')}
-              >
-                Upcoming
-              </Button>
-              <Button
-                variant={filterType === 'ai-predicted' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setFilterType('ai-predicted')}
-              >
-                AI Predicted
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
+    <RoleGuard role="Operator">
+      <div className="h-screen relative flex">
+        <AnimatedBackground />
+        <div className="relative z-10 w-full flex">
+        <OperatorSidebar onSidebarChange={setIsSidebarExpanded} />
         
-        <CardContent>
-          <CardDescription className="mb-4">
-            {filteredAlerts.length > 0 
-              ? `Showing ${filteredAlerts.length} alerts generated from your uploaded Train_maintenance excel data`
-              : 'No alerts found. Check browser console for API errors or ensure Train_maintenance data is uploaded.'
-            }
-          </CardDescription>
+        <div 
+          className={`flex-1 flex flex-col transition-all duration-300 ${
+            isSidebarExpanded ? 'lg:pl-64' : 'lg:pl-16'
+          }`}
+        >
+          <OperatorHeader user={user} isSidebarExpanded={isSidebarExpanded} />
           
-          {filteredAlerts.length === 0 ? (
-            <div className="text-center py-12">
-              <Bell className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-lg font-medium text-muted-foreground mb-2">No alerts found</p>
-              <p className="text-sm text-muted-foreground">
-                {searchTerm || filterType !== 'all' 
-                  ? 'Try adjusting your search terms or filters' 
-                  : 'All trains are within maintenance schedules'
-                }
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {filteredAlerts.map((alert) => (
-                <div 
-                  key={alert.id} 
-                  className={`flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors ${
-                    alert.severity === 'Critical' ? 'border-red-200 bg-red-50/50' :
-                    alert.severity === 'Warning' ? 'border-yellow-200 bg-yellow-50/50' :
-                    'border-blue-200 bg-blue-50/50'
-                  }`}
-                >
-                  <div className="flex items-start gap-4 flex-1">
-                    {getAlertIcon(alert.type)}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="text-lg font-semibold">{alert.trainId}</span>
-                        {getSeverityBadge(alert.severity)}
-                        {getPriorityBadge(alert.priority)}
-                      </div>
-                      
-                      <h3 className="font-medium text-gray-900 mb-1">{alert.title}</h3>
-                      <p className="text-sm text-muted-foreground mb-2">{alert.description}</p>
-                      
-                      <div className="text-xs text-muted-foreground space-y-1">
-                        <div>Maintenance Type: <span className="font-medium">{alert.maintenanceType}</span></div>
-                        <div>Last Maintenance: <span className="font-medium">{new Date(alert.lastMaintenanceDate).toLocaleDateString()}</span></div>
-                        <div>Next Due: <span className="font-medium">{new Date(alert.nextDueDate).toLocaleDateString()}</span></div>
-                        {alert.daysOverdue && (
-                          <div className="text-red-600 font-semibold">
-                            🚨 {alert.daysOverdue} days overdue!
-                          </div>
-                        )}
-                        {alert.daysUntilDue && (
-                          <div className={alert.daysUntilDue <= 7 ? 'text-yellow-600 font-medium' : 'text-muted-foreground'}>
-                            ⏰ Due in {alert.daysUntilDue} days
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button size="sm" variant="outline">
-                      Acknowledge
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant={alert.severity === 'Critical' ? 'destructive' : 'default'}
-                    >
-                      Take Action
-                    </Button>
-                  </div>
+          <main className="flex-1 overflow-auto pt-20 p-6 space-y-6">
+            <div className="bg-card text-card-foreground overflow-hidden shadow rounded-lg p-6 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold flex items-center gap-2 text-foreground">
+                    <AlertTriangle className="h-8 w-8 text-destructive" />
+                    <TranslatedText text="Conflict Alerts" />
+                  </h1>
+                  <p className="text-muted-foreground mt-1">
+                    <TranslatedText text="AI-detected issues with consolidated operational conflicts" />
+                  </p>
                 </div>
-              ))}
+                <Button variant="outline" size="sm">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                <TranslatedText text="Refresh Alerts" />
+                </Button>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+
+            {/* Alert Statistics */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        <TranslatedText text="Total Alerts" />
+                      </p>
+                      <p className="text-2xl font-bold">{stats.total}</p>
+                    </div>
+                    <Bell className="h-8 w-8 text-gray-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        <TranslatedText text="Active" />
+                      </p>
+                      <p className="text-2xl font-bold text-red-600">{stats.active}</p>
+                    </div>
+                    <AlertTriangle className="h-8 w-8 text-red-600" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        <TranslatedText text="Critical" />
+                      </p>
+                      <p className="text-2xl font-bold text-red-800">{stats.critical}</p>
+                    </div>
+                    <Shield className="h-8 w-8 text-red-800" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">
+                        <TranslatedText text="Acknowledged" />
+                      </p>
+                      <p className="text-2xl font-bold text-blue-600">{stats.acknowledged}</p>
+                    </div>
+                    <CheckCircle className="h-8 w-8 text-blue-600" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Filter Buttons */}
+            <div className="flex gap-2">
+              <Button 
+                variant={filter === 'all' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => setFilter('all')}
+              >
+                <TranslatedText text="All Alerts" />
+              </Button>
+              <Button 
+                variant={filter === 'active' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => setFilter('active')}
+              >
+                <TranslatedText text="Active" /> ({stats.active})
+              </Button>
+              <Button 
+                variant={filter === 'critical' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => setFilter('critical')}
+              >
+                <TranslatedText text="Critical" /> ({stats.critical})
+              </Button>
+              <Button 
+                variant={filter === 'acknowledged' ? 'default' : 'outline'} 
+                size="sm"
+                onClick={() => setFilter('acknowledged')}
+              >
+                <TranslatedText text="Acknowledged" /> ({stats.acknowledged})
+              </Button>
+            </div>
+
+            {/* Alerts List */}
+            <div className="space-y-4">
+              {filteredAlerts.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center">
+                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No Active Conflicts</h3>
+                    <p className="text-muted-foreground">All systems operating normally</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                filteredAlerts.map((alert) => (
+                  <Card key={alert.id} className={`border-l-4 ${getSeverityColor(alert.severity)}`}>
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4 flex-1">
+                          <div className={`p-2 rounded-full ${getSeverityColor(alert.severity)}`}>
+                            {getAlertIcon(alert.type)}
+                          </div>
+                          
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <h3 className="text-lg font-semibold">
+                                {alert.trainId && (
+                                  <span className="text-blue-600 mr-2">{alert.trainId}:</span>
+                                )}
+                                {alert.title}
+                              </h3>
+                              {getStatusBadge(alert.status)}
+                              <Badge variant="outline" className="text-xs">
+                                AI {alert.aiConfidence}%
+                              </Badge>
+                            </div>
+                            
+                            <p className="text-gray-700 mb-2">{alert.description}</p>
+                            
+                            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-3">
+                              <h4 className="text-sm font-semibold text-orange-800 mb-1">
+                                <TranslatedText text="Impact Assessment" />:
+                              </h4>
+                              <p className="text-sm text-orange-700">{alert.impact}</p>
+                            </div>
+                            
+                            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                              <div className="flex items-center gap-1">
+                                <Clock className="h-4 w-4" />
+                                <TranslatedText text="Detected" />: {alert.detectedAt}
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Badge className="h-4 w-4" />
+                                {alert.type.charAt(0).toUpperCase() + alert.type.slice(1)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {alert.status === 'active' && (
+                          <div className="flex gap-2 ml-4">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleAcknowledge(alert.id)}
+                              className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              <TranslatedText text="Acknowledge" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => handleOverride(alert.id)}
+                            >
+                              <Shield className="h-4 w-4 mr-1" />
+                              <TranslatedText text="Override" />
+                            </Button>
+                          </div>
+                        )}
+                        
+                        {alert.status === 'acknowledged' && (
+                          <div className="flex gap-2 ml-4">
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => handleOverride(alert.id)}
+                            >
+                              <Shield className="h-4 w-4 mr-1" />
+                              Override
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </main>
+        </div>
+        </div>
+      </div>
+    </RoleGuard>
   )
 }

@@ -1,506 +1,591 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
+import { TranslatedText } from '@/components/translation/translated-text'
 import { RoleGuard } from '@/hooks/use-role-access'
+import { OperatorSidebar } from '@/components/operator/operator-sidebar'
+import { OperatorHeader } from '@/components/operator/operator-header'
+import { AnimatedBackground } from '@/components/animated-background'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar } from '@/components/ui/calendar'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import {
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { 
+  Play, 
+  RotateCcw, 
+  Settings, 
+  Users, 
+  Zap, 
+  AlertTriangle, 
+  CheckCircle,
+  ArrowRight,
+  TrendingUp,
   Clock,
   Train,
-  Settings,
-  CalendarDays,
-  Search,
-  Filter,
-  AlertTriangle,
-  CheckCircle,
-  XCircle,
-  Calendar as CalendarIcon,
+  Wrench
 } from 'lucide-react'
-import { format, addDays, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO } from 'date-fns'
 
-interface TrainSchedule {
-  trainId: string
-  trainName: string
-  route: string
-  departureTime: string
-  arrivalTime: string
-  status: 'Active' | 'Maintenance' | 'Delayed' | 'Cancelled'
-  platform: string
-  date: string
-}
-
-interface MaintenanceWindow {
+interface SimulationConstraint {
   id: string
-  trainId: string
-  trainName: string
-  type: 'Preventive' | 'Corrective' | 'Emergency' | 'AI-Suggested'
-  scheduledDate: string
-  duration: string
-  priority: 'High' | 'Medium' | 'Low'
+  type: 'staff' | 'priority' | 'failure' | 'resource' | 'policy'
   description: string
-  status: 'Scheduled' | 'In-Progress' | 'Completed' | 'Overdue'
+  value: string | number
+  impact: 'positive' | 'negative' | 'neutral'
 }
 
-interface CalendarEvent {
-  date: Date
-  events: {
-    type: 'train' | 'maintenance'
-    data: TrainSchedule | MaintenanceWindow
-  }[]
+interface InductionPlan {
+  trainId: string
+  trainName: string
+  priority: number
+  confidence: number
+  readyTime: string
+  factors: {
+    fitness: number
+    jobCard: number
+    branding: number
+    mileage: number  
+    cleaning: number
+    stabling: number
+  }
+  reason: string
+  estimatedDelay?: string
 }
 
 export default function OperatorSchedulePage() {
   const { user } = useAuth()
-  const [trainSchedules, setTrainSchedules] = useState<TrainSchedule[]>([])
-  const [maintenanceWindows, setMaintenanceWindows] = useState<MaintenanceWindow[]>([])
-  const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([])
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false)
+  
+  const [constraints, setConstraints] = useState<SimulationConstraint[]>([])
+  const [isSimulating, setIsSimulating] = useState(false)
+  const [simulationResults, setSimulationResults] = useState<{
+    original: InductionPlan[]
+    modified: InductionPlan[]
+  } | null>(null)
 
-  useEffect(() => {
-    fetchScheduleData()
-  }, [])
+  // Form states for adding constraints
+  const [newConstraintType, setNewConstraintType] = useState<SimulationConstraint['type']>('staff')
+  const [staffCount, setStaffCount] = useState([8])
+  const [brandingWeight, setBrandingWeight] = useState([25])
+  const [failureTrainId, setFailureTrainId] = useState('')
+  const [customConstraint, setCustomConstraint] = useState('')
 
-  const fetchScheduleData = async () => {
-    try {
-      setLoading(true)
-      const response = await fetch('/api/operator/schedule', {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-      setTrainSchedules(data.trainSchedules || [])
-      setMaintenanceWindows(data.maintenanceWindows || [])
-      generateCalendarEvents(data.trainSchedules || [], data.maintenanceWindows || [])
-    } catch (error) {
-      console.error('Error fetching schedule data:', error)
-      setError('Failed to load schedule data. Please try again later.')
-    } finally {
-      setLoading(false)
+  // Original baseline plan
+  const originalPlan: InductionPlan[] = [
+    {
+      trainId: 'T-101',
+      trainName: 'Metro Express A',
+      priority: 1,
+      confidence: 96,
+      readyTime: '19:30',
+      factors: { fitness: 95, jobCard: 92, branding: 88, mileage: 90, cleaning: 85, stabling: 94 },
+      reason: 'High fitness score, optimal mileage balance'
+    },
+    {
+      trainId: 'T-104',
+      trainName: 'City Link 1',
+      priority: 2,
+      confidence: 89,
+      readyTime: '20:15',
+      factors: { fitness: 88, jobCard: 90, branding: 92, mileage: 85, cleaning: 80, stabling: 87 },
+      reason: 'Strong branding compliance, good job-card status'
+    },
+    {
+      trainId: 'T-107',
+      trainName: 'Metro Connect B',
+      priority: 3,
+      confidence: 82,
+      readyTime: '21:00',
+      factors: { fitness: 82, jobCard: 85, branding: 78, mileage: 88, cleaning: 90, stabling: 80 },
+      reason: 'Balanced across factors, cleaning priority'
+    },
+    {
+      trainId: 'T-110',
+      trainName: 'Express Route 2',
+      priority: 4,
+      confidence: 76,
+      readyTime: '21:45',
+      factors: { fitness: 75, jobCard: 78, branding: 85, mileage: 82, cleaning: 75, stabling: 85 },
+      reason: 'Adequate performance, moderate priority'
+    },
+    {
+      trainId: 'T-115',
+      trainName: 'Metro Link C',
+      priority: 5,
+      confidence: 71,
+      readyTime: '22:30',
+      factors: { fitness: 70, jobCard: 72, branding: 88, mileage: 78, cleaning: 68, stabling: 82 },
+      reason: 'Lower fitness but strong branding'
     }
+  ]
+
+  const addConstraint = () => {
+    let newConstraint: SimulationConstraint
+
+    switch (newConstraintType) {
+      case 'staff':
+        newConstraint = {
+          id: Date.now().toString(),
+          type: 'staff',
+          description: `Add ${staffCount[0] - 8} extra staff in cleaning`,
+          value: staffCount[0],
+          impact: staffCount[0] > 8 ? 'positive' : 'negative'
+        }
+        break
+      case 'priority':
+        newConstraint = {
+          id: Date.now().toString(),
+          type: 'priority',
+          description: `Reduce branding priority weight to ${brandingWeight[0]}%`,
+          value: brandingWeight[0],
+          impact: brandingWeight[0] < 25 ? 'negative' : 'neutral'
+        }
+        break
+      case 'failure':
+        newConstraint = {
+          id: Date.now().toString(),
+          type: 'failure',
+          description: `What if ${failureTrainId} fails inspection tonight?`,
+          value: failureTrainId,
+          impact: 'negative'
+        }
+        break
+      default:
+        newConstraint = {
+          id: Date.now().toString(),
+          type: 'policy',
+          description: customConstraint,
+          value: customConstraint,
+          impact: 'neutral'
+        }
+    }
+
+    setConstraints([...constraints, newConstraint])
+    resetForm()
   }
 
-  const generateCalendarEvents = (schedules: TrainSchedule[], maintenance: MaintenanceWindow[]) => {
-    const events: CalendarEvent[] = []
-    const today = new Date()
-    const monthStart = startOfMonth(today)
-    const monthEnd = endOfMonth(addDays(today, 30)) // Next month too
+  const resetForm = () => {
+    setStaffCount([8])
+    setBrandingWeight([25])
+    setFailureTrainId('')
+    setCustomConstraint('')
+  }
 
-    const daysInRange = eachDayOfInterval({ start: monthStart, end: monthEnd })
+  const removeConstraint = (id: string) => {
+    setConstraints(constraints.filter(c => c.id !== id))
+  }
 
-    daysInRange.forEach(date => {
-      const dayEvents: CalendarEvent['events'] = []
-
-      // Add train schedules for this date
-      schedules.forEach(schedule => {
-        if (isSameDay(parseISO(schedule.date), date)) {
-          dayEvents.push({
-            type: 'train',
-            data: schedule
-          })
-        }
-      })
-
-      // Add maintenance windows for this date
-      maintenance.forEach(maint => {
-        if (isSameDay(parseISO(maint.scheduledDate), date)) {
-          dayEvents.push({
-            type: 'maintenance',
-            data: maint
-          })
-        }
-      })
-
-      if (dayEvents.length > 0) {
-        events.push({
-          date,
-          events: dayEvents
-        })
+  const runSimulation = async () => {
+    setIsSimulating(true)
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // Generate modified plan based on constraints
+    let modifiedPlan = [...originalPlan]
+    
+    constraints.forEach(constraint => {
+      switch (constraint.type) {
+        case 'staff':
+          if (constraint.value as number > 8) {
+            // More cleaning staff improves cleaning scores
+            modifiedPlan = modifiedPlan.map(plan => ({
+              ...plan,
+              factors: { ...plan.factors, cleaning: Math.min(100, plan.factors.cleaning + 10) },
+              confidence: Math.min(100, plan.confidence + 3),
+              readyTime: plan.readyTime // Earlier ready time due to faster cleaning
+            }))
+          }
+          break
+        case 'priority':
+          if (constraint.value as number < 25) {
+            // Reduced branding weight changes priorities
+            modifiedPlan = modifiedPlan.map(plan => ({
+              ...plan,
+              factors: { ...plan.factors, branding: plan.factors.branding * (constraint.value as number / 25) },
+              confidence: plan.confidence - 2
+            }))
+          }
+          break
+        case 'failure':
+          const trainId = constraint.value as string
+          const failedTrainIndex = modifiedPlan.findIndex(p => p.trainId === trainId)
+          if (failedTrainIndex !== -1) {
+            modifiedPlan[failedTrainIndex] = {
+              ...modifiedPlan[failedTrainIndex],
+              priority: 999,
+              confidence: 0,
+              readyTime: 'FAILED',
+              factors: { fitness: 0, jobCard: 0, branding: 0, mileage: 0, cleaning: 0, stabling: 0 },
+              reason: 'Failed inspection - removed from service',
+              estimatedDelay: '24-48 hours'
+            }
+          }
+          break
       }
     })
-
-    setCalendarEvents(events)
+    
+    // Re-sort by priority (excluding failed trains)
+    const workingTrains = modifiedPlan.filter(p => p.confidence > 0)
+    const failedTrains = modifiedPlan.filter(p => p.confidence === 0)
+    
+    workingTrains.sort((a, b) => {
+      const aScore = Object.values(a.factors).reduce((sum, val) => sum + val, 0) / 6
+      const bScore = Object.values(b.factors).reduce((sum, val) => sum + val, 0) / 6
+      return bScore - aScore
+    })
+    
+    // Reassign priorities
+    workingTrains.forEach((train, index) => {
+      train.priority = index + 1
+    })
+    
+    modifiedPlan = [...workingTrains, ...failedTrains]
+    
+    setSimulationResults({
+      original: originalPlan,
+      modified: modifiedPlan
+    })
+    setIsSimulating(false)
   }
 
-  const filteredSchedules = trainSchedules.filter(schedule => {
-    const matchesSearch = schedule.trainId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         schedule.trainName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         schedule.route.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || schedule.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const resetSimulation = () => {
+    setConstraints([])
+    setSimulationResults(null)
+  }
 
-  const filteredMaintenance = maintenanceWindows.filter(maint => {
-    const matchesSearch = maint.trainId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         maint.trainName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         maint.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || maint.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
-
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: any; icon: any }> = {
-      'Active': { variant: 'default', icon: CheckCircle },
-      'Maintenance': { variant: 'secondary', icon: Settings },
-      'Delayed': { variant: 'destructive', icon: AlertTriangle },
-      'Cancelled': { variant: 'destructive', icon: XCircle },
-      'Scheduled': { variant: 'outline', icon: Clock },
-      'In-Progress': { variant: 'default', icon: Settings },
-      'Completed': { variant: 'default', icon: CheckCircle },
-      'Overdue': { variant: 'destructive', icon: AlertTriangle },
+  const getConstraintIcon = (type: SimulationConstraint['type']) => {
+    switch (type) {
+      case 'staff': return <Users className="h-4 w-4" />
+      case 'priority': return <TrendingUp className="h-4 w-4" />
+      case 'failure': return <AlertTriangle className="h-4 w-4" />
+      case 'resource': return <Wrench className="h-4 w-4" />
+      default: return <Settings className="h-4 w-4" />
     }
-
-    const config = variants[status] || variants['Active']
-    const IconComponent = config.icon
-
-    return (
-      <Badge variant={config.variant} className="flex items-center gap-1">
-        <IconComponent className="h-3 w-3" />
-        {status}
-      </Badge>
-    )
   }
 
-  const getPriorityBadge = (priority: string) => {
-    const variants: Record<string, string> = {
-      'High': 'destructive',
-      'Medium': 'secondary',
-      'Low': 'outline',
+  const getImpactColor = (impact: SimulationConstraint['impact']) => {
+    switch (impact) {
+      case 'positive': return 'text-green-600 bg-green-50 border-green-200'
+      case 'negative': return 'text-red-600 bg-red-50 border-red-200'
+      default: return 'text-blue-600 bg-blue-50 border-blue-200'
     }
-
-    return (
-      <Badge variant={variants[priority] as any}>
-        {priority}
-      </Badge>
-    )
-  }
-
-  const getSelectedDateEvents = () => {
-    return calendarEvents.find(event => isSameDay(event.date, selectedDate))?.events || []
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Schedule Data...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center">
-              <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Error Loading Schedule</h3>
-              <p className="text-gray-600 mb-4">{error}</p>
-              <Button onClick={fetchScheduleData}>
-                Try Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
   }
 
   return (
     <RoleGuard role="Operator">
-      <div className="min-h-screen bg-gray-50">
-        <div className="py-8">
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <Clock className="h-6 w-6 text-green-600" />
-                Train Schedule & Maintenance Windows
-              </h1>
-              <p className="mt-1 text-sm text-gray-600">
-                AI-powered train roster, maintenance schedules, and operational calendar for {user?.name}
-              </p>
-            </div>
-
-            {/* Search and Filter */}
-            <div className="mb-6 flex flex-col sm:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search trains, routes, or maintenance..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant={statusFilter === 'all' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('all')}
-                  size="sm"
-                >
-                  All
-                </Button>
-                <Button
-                  variant={statusFilter === 'Active' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('Active')}
-                  size="sm"
-                >
-                  Active
-                </Button>
-                <Button
-                  variant={statusFilter === 'Maintenance' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('Maintenance')}
-                  size="sm"
-                >
-                  Maintenance
-                </Button>
-                <Button
-                  variant={statusFilter === 'Overdue' ? 'default' : 'outline'}
-                  onClick={() => setStatusFilter('Overdue')}
-                  size="sm"
-                >
-                  Overdue
-                </Button>
-              </div>
-            </div>
-
-            {/* Main Content */}
-            <Tabs defaultValue="calendar" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="calendar" className="flex items-center gap-2">
-                  <CalendarIcon className="h-4 w-4" />
-                  Calendar View
-                </TabsTrigger>
-                <TabsTrigger value="roster" className="flex items-center gap-2">
-                  <Train className="h-4 w-4" />
-                  Train Roster
-                </TabsTrigger>
-                <TabsTrigger value="maintenance" className="flex items-center gap-2">
-                  <Settings className="h-4 w-4" />
-                  Maintenance Windows
-                </TabsTrigger>
-              </TabsList>
-
-              {/* Calendar View */}
-              <TabsContent value="calendar" className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  {/* Calendar */}
-                  <Card className="lg:col-span-2">
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <CalendarIcon className="h-5 w-5" />
-                        AI-Predicted Monthly Schedule
-                      </CardTitle>
-                      <CardDescription>
-                        Click on any date to view scheduled trains and maintenance windows
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={(date) => date && setSelectedDate(date)}
-                        className="rounded-md border"
-                        modifiers={{
-                          hasEvents: calendarEvents.map(event => event.date)
-                        }}
-                        modifiersStyles={{
-                          hasEvents: { backgroundColor: '#dcfce7', fontWeight: 'bold' }
-                        }}
-                      />
-                    </CardContent>
-                  </Card>
-
-                  {/* Selected Date Details */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>
-                        {format(selectedDate, 'MMMM dd, yyyy')}
-                      </CardTitle>
-                      <CardDescription>
-                        Schedule for selected date
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        {getSelectedDateEvents().length === 0 ? (
-                          <p className="text-gray-500 text-center py-4">
-                            No events scheduled for this date
-                          </p>
-                        ) : (
-                          getSelectedDateEvents().map((event, index) => (
-                            <div key={index} className="border rounded-lg p-3">
-                              {event.type === 'train' ? (
-                                <div>
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium">{(event.data as TrainSchedule).trainId}</span>
-                                    {getStatusBadge((event.data as TrainSchedule).status)}
-                                  </div>
-                                  <p className="text-sm text-gray-600">
-                                    {(event.data as TrainSchedule).route}
-                                  </p>
-                                  <p className="text-sm text-gray-500">
-                                    {(event.data as TrainSchedule).departureTime} - {(event.data as TrainSchedule).arrivalTime}
-                                  </p>
-                                </div>
-                              ) : (
-                                <div>
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="font-medium">{(event.data as MaintenanceWindow).trainId}</span>
-                                    {getPriorityBadge((event.data as MaintenanceWindow).priority)}
-                                  </div>
-                                  <p className="text-sm text-gray-600">
-                                    {(event.data as MaintenanceWindow).type} Maintenance
-                                  </p>
-                                  <p className="text-sm text-gray-500">
-                                    Duration: {(event.data as MaintenanceWindow).duration}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+      <div className="h-screen relative flex">
+        <AnimatedBackground />
+        <div className="relative z-10 w-full flex">
+        <OperatorSidebar onSidebarChange={setIsSidebarExpanded} />
+        
+        <div 
+          className={`flex-1 flex flex-col transition-all duration-300 ${
+            isSidebarExpanded ? 'lg:pl-64' : 'lg:pl-16'
+          }`}
+        >
+          <OperatorHeader user={user} isSidebarExpanded={isSidebarExpanded} />
+          
+          <main className="flex-1 overflow-auto pt-20 p-6 space-y-6">
+            <div className="bg-card text-card-foreground overflow-hidden shadow rounded-lg p-6 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold flex items-center gap-2 text-foreground">
+                    <Play className="h-8 w-8 text-primary" />
+                    <TranslatedText text="Schedule Simulation" />
+                  </h1>
+                  <p className="text-muted-foreground mt-1">
+                    <TranslatedText text="Optimize train schedules with real-time constraints and AI-powered simulation" />
+                  </p>
                 </div>
-              </TabsContent>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={resetSimulation}>
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reset All
+                  </Button>
+                  <Button 
+                    onClick={runSimulation} 
+                  disabled={constraints.length === 0 || isSimulating}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {isSimulating ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      Simulating...
+                    </>
+                  ) : (
+                    <>
+                      <Play className="h-4 w-4 mr-2" />
+                      Run Simulation
+                    </>
+                  )}
+                </Button>
+                </div>
+              </div>
+            </div>
 
-              {/* Train Roster */}
-              <TabsContent value="roster">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Train className="h-5 w-5" />
-                      Train Roster
-                    </CardTitle>
-                    <CardDescription>
-                      Complete schedule of train operations with real-time status
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Train ID</TableHead>
-                            <TableHead>Train Name</TableHead>
-                            <TableHead>Route</TableHead>
-                            <TableHead>Date</TableHead>
-                            <TableHead>Departure</TableHead>
-                            <TableHead>Arrival</TableHead>
-                            <TableHead>Platform</TableHead>
-                            <TableHead>Status</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredSchedules.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                                No train schedules found matching your criteria
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            filteredSchedules.map((schedule, index) => (
-                              <TableRow key={index}>
-                                <TableCell className="font-medium">{schedule.trainId}</TableCell>
-                                <TableCell>{schedule.trainName}</TableCell>
-                                <TableCell>{schedule.route}</TableCell>
-                                <TableCell>{format(parseISO(schedule.date), 'MMM dd, yyyy')}</TableCell>
-                                <TableCell>{schedule.departureTime}</TableCell>
-                                <TableCell>{schedule.arrivalTime}</TableCell>
-                                <TableCell>{schedule.platform}</TableCell>
-                                <TableCell>{getStatusBadge(schedule.status)}</TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              {/* Maintenance Windows */}
-              <TabsContent value="maintenance">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Constraint Builder */}
+              <div className="lg:col-span-1">
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Settings className="h-5 w-5" />
-                      Maintenance Windows
+                      Set Constraints
                     </CardTitle>
                     <CardDescription>
-                      AI-suggested maintenance schedules and operational blocks
+                      Add operational constraints to test scenarios
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Train ID</TableHead>
-                            <TableHead>Train Name</TableHead>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Scheduled Date</TableHead>
-                            <TableHead>Duration</TableHead>
-                            <TableHead>Priority</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Description</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {filteredMaintenance.length === 0 ? (
-                            <TableRow>
-                              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                                No maintenance windows found matching your criteria
-                              </TableCell>
-                            </TableRow>
-                          ) : (
-                            filteredMaintenance.map((maint, index) => (
-                              <TableRow key={index}>
-                                <TableCell className="font-medium">{maint.trainId}</TableCell>
-                                <TableCell>{maint.trainName}</TableCell>
-                                <TableCell>
-                                  <Badge variant={maint.type === 'AI-Suggested' ? 'default' : 'secondary'}>
-                                    {maint.type}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>{format(parseISO(maint.scheduledDate), 'MMM dd, yyyy')}</TableCell>
-                                <TableCell>{maint.duration}</TableCell>
-                                <TableCell>{getPriorityBadge(maint.priority)}</TableCell>
-                                <TableCell>{getStatusBadge(maint.status)}</TableCell>
-                                <TableCell className="max-w-xs truncate">{maint.description}</TableCell>
-                              </TableRow>
-                            ))
-                          )}
-                        </TableBody>
-                      </Table>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label>Constraint Type</Label>
+                      <Select value={newConstraintType} onValueChange={(value: SimulationConstraint['type']) => setNewConstraintType(value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="staff">Staff Adjustment</SelectItem>
+                          <SelectItem value="priority">Priority Weight</SelectItem>
+                          <SelectItem value="failure">Train Failure</SelectItem>
+                          <SelectItem value="policy">Custom Policy</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
+
+                    {newConstraintType === 'staff' && (
+                      <div>
+                        <Label>Cleaning Staff Count: {staffCount[0]}</Label>
+                        <Slider
+                          value={staffCount}
+                          onValueChange={setStaffCount}
+                          max={15}
+                          min={4}
+                          step={1}
+                          className="mt-2"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Current: 8 staff, Adjust: +{staffCount[0] - 8} extra
+                        </p>
+                      </div>
+                    )}
+
+                    {newConstraintType === 'priority' && (
+                      <div>
+                        <Label>Branding Priority Weight: {brandingWeight[0]}%</Label>
+                        <Slider
+                          value={brandingWeight}
+                          onValueChange={setBrandingWeight}
+                          max={50}
+                          min={5}
+                          step={5}
+                          className="mt-2"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Default: 25%, Current: {brandingWeight[0]}%
+                        </p>
+                      </div>
+                    )}
+
+                    {newConstraintType === 'failure' && (
+                      <div>
+                        <Label>Train ID for Failure Test</Label>
+                        <Select value={failureTrainId} onValueChange={setFailureTrainId}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select train..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="T-101">T-101 (Metro Express A)</SelectItem>
+                            <SelectItem value="T-104">T-104 (City Link 1)</SelectItem>
+                            <SelectItem value="T-107">T-107 (Metro Connect B)</SelectItem>
+                            <SelectItem value="T-110">T-110 (Express Route 2)</SelectItem>
+                            <SelectItem value="T-115">T-115 (Metro Link C)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {newConstraintType === 'policy' && (
+                      <div>
+                        <Label>Custom Constraint</Label>
+                        <Textarea
+                          value={customConstraint}
+                          onChange={(e) => setCustomConstraint(e.target.value)}
+                          placeholder="Describe your what-if scenario..."
+                          className="mt-1"
+                        />
+                      </div>
+                    )}
+
+                    <Button 
+                      onClick={addConstraint} 
+                      className="w-full"
+                      disabled={
+                        (newConstraintType === 'failure' && !failureTrainId) ||
+                        (newConstraintType === 'policy' && !customConstraint.trim())
+                      }
+                    >
+                      Add Constraint
+                    </Button>
+
+                    {/* Active Constraints */}
+                    {constraints.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Active Constraints ({constraints.length})</Label>
+                        {constraints.map((constraint) => (
+                          <div key={constraint.id} className={`p-3 rounded-lg border ${getImpactColor(constraint.impact)}`}>
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start gap-2">
+                                {getConstraintIcon(constraint.type)}
+                                <span className="text-sm font-medium">{constraint.description}</span>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeConstraint(constraint.id)}
+                                className="h-6 w-6 p-0"
+                              >
+                                ×
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
+              </div>
+
+              {/* Results Comparison */}
+              <div className="lg:col-span-2">
+                {simulationResults ? (
+                  <div className="space-y-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <ArrowRight className="h-5 w-5 text-green-600" />
+                          Simulation Results: Side-by-Side Comparison
+                        </CardTitle>
+                        <CardDescription>
+                          Original plan vs Modified plan with your constraints
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          {/* Original Plan */}
+                          <div>
+                            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                              <Clock className="h-4 w-4" />
+                              Original Plan
+                            </h3>
+                            <div className="space-y-3">
+                              {simulationResults.original.map((train, index) => (
+                                <div key={train.trainId} className="bg-gray-50 rounded-lg p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="outline" className="text-xs">
+                                        #{train.priority}
+                                      </Badge>
+                                      <span className="font-medium">{train.trainId}</span>
+                                      <span className="text-sm text-gray-600">{train.trainName}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant="default" className="bg-blue-100 text-blue-800">
+                                        {train.confidence}% confident
+                                      </Badge>
+                                      <span className="text-sm font-medium">{train.readyTime}</span>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-gray-600">{train.reason}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Modified Plan */}
+                          <div>
+                            <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                              <Zap className="h-4 w-4 text-green-600" />
+                              Modified Plan (With Constraints)
+                            </h3>
+                            <div className="space-y-3">
+                              {simulationResults.modified.map((train, index) => (
+                                <div key={train.trainId} className={`rounded-lg p-3 ${
+                                  train.confidence === 0 ? 'bg-red-50 border border-red-200' : 'bg-green-50 border border-green-200'
+                                }`}>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant={train.confidence === 0 ? "destructive" : "outline"} className="text-xs">
+                                        #{train.priority === 999 ? 'FAIL' : train.priority}
+                                      </Badge>
+                                      <span className="font-medium">{train.trainId}</span>
+                                      <span className="text-sm text-gray-600">{train.trainName}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {train.confidence === 0 ? (
+                                        <Badge variant="destructive">FAILED</Badge>
+                                      ) : (
+                                        <Badge variant="default" className="bg-green-100 text-green-800">
+                                          {train.confidence}% confident
+                                        </Badge>
+                                      )}
+                                      <span className="text-sm font-medium">{train.readyTime}</span>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-gray-600">{train.reason}</p>
+                                  {train.estimatedDelay && (
+                                    <p className="text-xs text-red-600 mt-1">Estimated delay: {train.estimatedDelay}</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Impact Summary */}
+                        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <h4 className="font-semibold text-blue-900 mb-2">Impact Summary</h4>
+                          <ul className="text-sm text-blue-800 space-y-1">
+                            {constraints.map((constraint, index) => (
+                              <li key={index} className="flex items-center gap-2">
+                                <CheckCircle className="h-3 w-3" />
+                                {constraint.description} applied successfully
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Play className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-medium mb-2">Ready to Simulate</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Add constraints on the left and click "Run Simulation" to see the impact on tonight's induction plan
+                      </p>
+                      <div className="text-sm text-gray-500">
+                        Try examples like:
+                        <ul className="mt-2 space-y-1">
+                          <li>• Add 2 extra staff in cleaning</li>
+                          <li>• Reduce branding priority weight to 10%</li>
+                          <li>• What if T-110 fails inspection tonight?</li>
+                        </ul>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </main>
+        </div>
         </div>
       </div>
     </RoleGuard>
