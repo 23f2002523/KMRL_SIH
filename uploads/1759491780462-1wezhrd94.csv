@@ -1,0 +1,31 @@
+Alert ID,Train ID,Date Reported,Reported By,Issue Type,Severity,Description,Status,Resolution Date
+ALT-1001,T101,2025-09-28,STAFF-04,Electrical,Medium,"Intermittent lighting issue in Coach B3",In Progress,NA
+ALT-1002,T103,2025-09-15,Ravi Kumar,Engine,Critical,"Engine overheating sensor triggered; performance drop",Escalated,NA
+ALT-1003,T108,2025-10-01,STAFF-02,Coach,Low,"Seat armrest broken in Coach C5",Open,NA
+ALT-1004,T105,2025-09-25,Priya Sharma,Coach,Medium,"AC unit in Coach A1 not cooling effectively",Resolved,2025-09-28
+ALT-1005,T107,2025-09-29,STAFF-01,Brake,High,"Brake pressure dropping below threshold",In Progress,NA
+ALT-1006,T110,2025-09-20,Sunita Rao,Signal,High,"Onboard signal receiver showing intermittent faults",Resolved,2025-09-22
+ALT-1007,T114,2025-09-26,STAFF-05,Engine,Medium,"Unusual vibrations reported by driver at high speed",In Progress,NA
+ALT-1008,T120,2025-09-30,Ravi Kumar,Coach,Low,"Automatic door sensor on Coach D2 is slow to respond",Resolved,2025-10-01
+ALT-1009,T104,2025-09-11,STAFF-03,Electrical,Critical,"Main power unit fluctuation causing system reboots",Escalated,NA
+ALT-1010,T122,2025-09-23,Priya Sharma,Brake,High,"Squealing noise reported from front axle brakes",Resolved,2025-09-25
+ALT-1011,T131,2025-09-27,STAFF-02,Engine,Medium,"Minor oil leak detected from engine compartment",In Progress,NA
+ALT-1012,T135,2025-10-02,Sunita Rao,Coach,Low,"Passenger information display in Coach B1 is frozen",Open,NA
+ALT-1013,T146,2025-09-24,Ravi Kumar,Engine,Critical,"Engine stalled during a test run, requires major check",In Progress,NA
+ALT-1014,T154,2025-09-28,STAFF-01,Engine,High,"Smoke detected from exhaust, possible injector failure",In Progress,NA
+ALT-1015,T142,2025-09-18,Priya Sharma,Signal,Critical,"Failure to communicate with central tracking system",Resolved,2025-09-20
+ALT-1016,T150,2025-09-29,STAFF-04,Electrical,Medium,"HVAC control panel unresponsive in Coach A4",Resolved,2025-10-01
+ALT-1017,T118,2025-09-21,Sunita Rao,Coach,Medium,"Window pane latch broken in Coach C2, security risk",Resolved,2025-09-22
+ALT-1018,T102,2025-10-01,STAFF-05,Brake,Low,"Brake pads show 75% wear, flagged for next service",Open,NA
+ALT-1019,T125,2025-09-19,Ravi Kumar,Engine,High,"Coolant levels dropping faster than normal",In Progress,NA
+ALT-1020,T139,2025-09-26,STAFF-03,Signal,Medium,"GPS location data is not refreshing correctly",Resolved,2025-09-27
+ALT-1021,T157,2025-09-30,Priya Sharma,Electrical,Low,"USB charging port not working at seat 42",Resolved,2025-10-01
+ALT-1022,T103,2025-09-16,STAFF-01,Signal,High,"Train failed to respond to automated track signal change",Escalated,NA
+ALT-1023,T112,2025-09-28,Sunita Rao,Brake,High,"Emergency brake test failed during routine check",In Progress,NA
+ALT-1024,T148,2025-10-02,STAFF-02,Coach,Low,"Water dispenser in Coach B5 is leaking",Open,NA
+ALT-1025,T115,2025-09-25,Ravi Kumar,Electrical,Medium,"Battery backup showing lower than expected capacity",In Progress,NA
+ALT-1026,T132,2025-09-29,Priya Sharma,Engine,Medium,"Engine RPM is unstable at idle",Resolved,2025-10-02
+ALT-1027,T146,2025-09-25,STAFF-05,Brake,High,"Brake hydraulic fluid pressure alert triggered",In Progress,NA
+ALT-1028,T151,2025-10-01,STAFF-03,Coach,Low,"Overhead luggage rack is loose",Resolved,2025-10-02
+ALT-1029,T109,2025-09-27,Sunita Rao,Electrical,Low,"Announcement system has static noise",Resolved,2025-09-28
+ALT-1030,T127,2025-09-23,Ravi Kumar,Signal,Medium,"Inconsistent speed data being sent to control room",In Progress,NA

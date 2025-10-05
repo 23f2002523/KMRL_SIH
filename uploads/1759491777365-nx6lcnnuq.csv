@@ -1,0 +1,31 @@
+Shift ID,Staff ID,Name,Role,Train ID Assigned,Shift Date,Shift Start Time,Shift End Time,Tasks Completed,Remarks
+SH-501,ST-101,Arjun Kumar,Driver,T108,2025-10-02,06:00,14:00,"Operated T108 on route KM-BL-2",Shift was smooth.
+SH-502,ST-201,Ravi Kumar,Engineer,T103,2025-10-02,08:00,16:00,"Initial assessment of critical engine failure on T103 (ALT-1002)",Engine requires complete overhaul. Parts ordered.
+SH-503,ST-301,Priya Sharma,Technician,T105,2025-10-02,08:00,16:00,"Resolved AC unit issue on T105 (ALT-1004)",Replaced coolant and cleaned filter.
+SH-504,ST-401,Suresh Verma,Supervisor,NA,2025-10-02,08:00,16:00,"Supervised morning shift; coordinated response for T103 and T104 alerts",High number of critical alerts today.
+SH-505,ST-102,Meera Singh,Driver,T105,2025-10-02,14:00,22:00,"Operated T105 on route KM-BL-1 after maintenance",Train performance is normal post-repair.
+SH-506,ST-302,Sunita Rao,Technician,T110,2025-10-02,08:00,16:00,"Performed final checks on T110 after signal issue was resolved",Train cleared for standby (Reserved).
+SH-507,ST-303,Vikram Gill,Technician,T101,2025-10-02,14:00,22:00,"Began investigation of electrical fault on T101 (ALT-1001)",Issue seems to be with the main power conduit.
+SH-508,ST-202,Anjali Desai,Engineer,T146,2025-10-02,08:00,16:00,"Oversaw diagnostics for T146; confirmed multiple critical failures",Recommended train be moved to 'Out of Service'.
+SH-509,ST-103,Sameer Gupta,Driver,T106,2025-10-03,06:00,14:00,"Operating T106 on route KM-BL-2",All systems nominal.
+SH-510,ST-301,Priya Sharma,Technician,T157,2025-10-03,08:00,16:00,"Investigating electrical issue from alert ALT-1021 on T157",Minor wiring issue.
+SH-511,ST-201,Ravi Kumar,Engineer,T103,2025-10-03,08:00,16:00,"Preparing T103 for engine removal. Coordinating with parts supplier.",Waiting for crane availability.
+SH-512,ST-304,Kavita Joshi,Technician,T107,2025-10-03,08:00,16:00,"Addressing high-severity brake issue on T107 (ALT-1005)",Hydraulic leak identified.
+SH-513,ST-402,Rajesh Mehta,Supervisor,NA,2025-10-03,08:00,16:00,"Morning shift briefing, assigned tasks for T107, T157, T103.",Depot is at full capacity with maintenance work.
+SH-514,ST-104,Rohan Das,Driver,T111,2025-10-03,06:00,14:00,"Operating T111 on route KM-BL-1",Normal operations.
+SH-515,ST-305,Imran Khan,Technician,T115,2025-10-03,08:00,16:00,"Running diagnostics on battery for T115 (ALT-1025)",Capacity is at 70%, needs replacement.
+SH-516,ST-105,Pooja Reddy,Driver,T120,2025-10-03,06:00,14:00,"Operating T120 on route KM-BL-2",No issues reported.
+SH-517,ST-203,Deepak Chen,Engineer,T154,2025-10-03,08:00,16:00,"Investigating engine smoke on T154 (ALT-1014)",Injector failure confirmed.
+SH-518,ST-302,Sunita Rao,Technician,T127,2025-10-03,08:00,16:00,"Working on signal data issue for T127 (ALT-1030)",Software patch seems to have fixed it.
+SH-519,ST-106,Amit Sharma,Driver,T123,2025-10-03,06:00,14:00,"Operating T123 on route KM-BL-1",Smooth run.
+SH-520,ST-306,Nisha Patel,Technician,T150,2025-10-03,08:00,16:00,"Fixing HVAC control panel on T150 (ALT-1016)",Panel replaced, system now responsive.
+SH-521,ST-107,Sanjay Varma,Driver,T124,2025-10-03,06:00,14:00,"Operating T124 on route KM-BL-2",No remarks.
+SH-522,ST-204,Fatima Sheikh,Engineer,NA,2025-10-03,08:00,16:00,"Reviewing maintenance backlog and prioritizing critical repairs",Prepared report for management.
+SH-523,ST-108,Bhavna Iyer,Driver,T126,2025-10-03,06:00,14:00,"Operating T126 on route KM-BL-2",All clear.
+SH-524,ST-303,Vikram Gill,Technician,T131,2025-10-03,08:00,16:00,"Fixing minor oil leak on T131 (ALT-1011)",Gasket replaced and sealed.
+SH-525,ST-401,Suresh Verma,Supervisor,T146,2025-10-03,08:00,16:00,"Coordinated movement of T146 to long-term service bay",Train is officially Out of Service.
+SH-526,ST-101,Arjun Kumar,Driver,T128,2025-10-03,14:00,22:00,"Scheduled to operate T128 on route KM-BL-2",Pre-departure checks completed.
+SH-527,ST-301,Priya Sharma,Technician,T148,2025-10-03,14:00,22:00,"Scheduled to fix water dispenser on T148 (ALT-1024)",Simple part replacement.
+SH-528,ST-202,Anjali Desai,Engineer,T104,2025-10-03,08:00,16:00,"Analyzing power unit logs for T104 (ALT-1009)",Confirmed critical hardware failure.
+SH-529,ST-304,Kavita Joshi,Technician,T139,2025-10-03,14:00,22:00,"Finalizing signal repair on T139. Awaiting supervisor clearance.",Train should be available tomorrow.
+SH-530,ST-102,Meera Singh,Driver,T129,2025-10-03,14:00,22:00,"Scheduled to operate T129 on route KM-BL-1",Ready for shift start.
