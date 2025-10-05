@@ -72,14 +72,12 @@ async function loginHandler(request: NextRequest) {
     console.log('Preparing success response with user:', userWithoutPassword)
 
     // Create response with token cookie
-    const response = NextResponse.json(
-      ApiResponseBuilder.success(
-        {
-          user: userWithoutPassword,
-          token,
-        },
-        'Login successful'
-      )
+    const response = ApiResponseBuilder.success(
+      {
+        user: userWithoutPassword,
+        token,
+      },
+      'Login successful'
     )
     console.log('Response created successfully')
 

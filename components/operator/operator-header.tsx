@@ -1,15 +1,15 @@
 "use client"
 
 import { Menu, Transition } from '@headlessui/react'
-import { BellIcon, UserCircleIcon, ChevronDownIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import { Fragment, useState } from 'react'
+import { BellIcon, UserCircleIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { Fragment } from 'react'
 import { useAuth } from '@/hooks/use-auth'
 import { cn } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { ModeToggle } from '@/components/mode-toggle'
 import { LibreLanguageToggle } from '@/components/language/libre-language-toggle'
 import { TranslatedText } from '@/components/translation/libre-translated-text'
+import { GlobalSearchBox } from '@/components/operator/global-search-box'
 
 interface OperatorHeaderProps {
   user: any
@@ -18,8 +18,6 @@ interface OperatorHeaderProps {
 
 export function OperatorHeader({ user, isSidebarExpanded = false }: OperatorHeaderProps) {
   const { logout } = useAuth()
-  const [language, setLanguage] = useState<'en' | 'ml'>('en')
-  const [searchQuery, setSearchQuery] = useState('')
 
   return (
     <div 
@@ -36,18 +34,7 @@ export function OperatorHeader({ user, isSidebarExpanded = false }: OperatorHead
       
       {/* Center - Search Box */}
       <div className="flex-1 max-w-md mx-4 hidden sm:block">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" aria-hidden="true" />
-          </div>
-          <Input
-            type="text"
-            placeholder="Search trains, alerts, reports..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md leading-5 bg-white dark:bg-gray-800 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-          />
-        </div>
+        <GlobalSearchBox />
       </div>
       
       {/* Right side controls */}

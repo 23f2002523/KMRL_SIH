@@ -37,14 +37,18 @@ export function AuthForm({ onSuccess }: AuthFormProps) {
     setError('')
     setSuccess('')
 
-    const result = await login(loginData.email, loginData.password)
+    console.log('AuthForm - Login attempt with:', { email: loginData.email, passwordLength: loginData.password.length })
+    const result = await login(loginData.email.trim(), loginData.password.trim())
     console.log('AuthForm login result:', result)
     
     if (result.success) {
       setSuccess('Login successful!')
+      console.log('AuthForm - Calling onSuccess with user:', result.user)
       // Call onSuccess with user data for proper redirect
       onSuccess?.(result.user)
+      setIsLoading(false)
     } else {
+      console.log('AuthForm - Login failed:', result.error)
       setError(result.error || 'Login failed')
       setIsLoading(false)
     }

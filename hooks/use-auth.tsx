@@ -88,30 +88,81 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
+      console.log('=== LOGIN ATTEMPT START ===')
       console.log('Sending login request:', { email, password })
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      })
+      
+      let response
+      try {
+        response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        })
+        console.log('Fetch completed, response received')
+      } catch (fetchError) {
+        console.error('Fetch request failed:', fetchError)
+        throw fetchError
+      }
 
-      const data = await response.json()
-      console.log('Login response:', { status: response.status, data })
+      console.log('Login response STATUS:', response.status)
+      console.log('Login response OK:', response.ok)
+      
+      let data
+      try {
+        data = await response.json()
+        console.log('JSON parsing completed')
+      } catch (jsonError) {
+        console.error('JSON parsing failed:', jsonError)
+        throw new Error('Failed to parse response JSON')
+      }
+      
+      console.log('Login response DATA:', data)
+      console.log('Data success property:', data.success)
+      console.log('Data error property:', data.error)
       console.log('Response data detailed:', JSON.stringify(data, null, 2))
-      console.log('Response headers:', response.headers)
-      console.log('Response ok:', response.ok)
 
-      if (response.ok && data.success) {
-        const { user: userData, token: authToken } = data.data
-        setUser(userData)
-        setToken(authToken)
-        localStorage.setItem('kmrl-auth-token', authToken)
-        handleSuccess('Login successful', `Welcome back, ${userData.name}!`)
-        return { success: true, user: userData }
+      // Check if response is ok first
+      console.log('=== RESPONSE CHECK ===')
+      console.log('response.ok:', response.ok)
+      console.log('response.status:', response.status)
+      console.log('data object:', data)
+      console.log('data.success:', data.success)
+      console.log('typeof data.success:', typeof data.success)
+      
+      if (response.ok) {
+        console.log('Response OK - checking data.success...')
+        if (data.success === true) {
+          console.log('Data success is true - processing login...')
+          
+          if (!data.data) {
+            console.error('data.data is missing from response:', data)
+            handleError('Invalid response structure from server', { showToast: true })
+            return { success: false, error: 'Invalid response from server' }
+          }
+          
+          const { user: userData, token: authToken } = data.data
+          console.log('Extracted user and token:', { userData, authToken })
+          
+          if (!userData || !authToken) {
+            console.error('Missing user or token in response:', { userData: !!userData, authToken: !!authToken })
+            handleError('Missing user data or token in response', { showToast: true })
+            return { success: false, error: 'Missing authentication data' }
+          }
+          
+          setUser(userData)
+          setToken(authToken)
+          localStorage.setItem('kmrl-auth-token', authToken)
+          handleSuccess('Login successful', `Welcome back, ${userData.name}!`)
+          return { success: true, user: userData }
+        } else {
+          console.log('Data success is NOT true:', data.success)
+          handleError(data.error || `Server returned success=false`, { showToast: true })
+          return { success: false, error: data.error || 'Server returned success=false' }
+        }
       } else {
-        console.log('Login failed - Response not ok or data.success false:', { responseOk: response.ok, dataSuccess: data.success, error: data.error })
+        console.log('Response NOT OK - status:', response.status)
         handleError(data.error || `Login failed (Status: ${response.status})`, { showToast: true })
         return { success: false, error: data.error || `HTTP ${response.status}` }
       }

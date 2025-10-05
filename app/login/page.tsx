@@ -48,10 +48,19 @@ export default function LoginPage() {
 
         <AuthForm 
           onSuccess={(user) => {
+            console.log('LoginPage - onSuccess called with user:', user)
             if (user?.role === 'Operator') {
-              router.push('/operator/dashboard')
+              console.log('LoginPage - User authenticated, waiting for state update before redirect')
+              // Wait longer to ensure auth state is fully updated
+              setTimeout(() => {
+                console.log('LoginPage - Redirecting to operator dashboard')
+                router.push('/operator/dashboard')
+              }, 500)
             } else {
-              router.push('/')
+              console.log('LoginPage - Redirecting to home page')
+              setTimeout(() => {
+                router.push('/')
+              }, 500)
             }
           }} 
         />

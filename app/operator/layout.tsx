@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { RoleGuard } from '@/hooks/use-role-access'
+import { GlobalSearchProvider } from '@/hooks/use-global-search'
 
 export default function OperatorLayout({
   children,
@@ -33,7 +34,9 @@ export default function OperatorLayout({
 
   return (
     <RoleGuard role="Operator">
-      {children}
+      <GlobalSearchProvider>
+        {children}
+      </GlobalSearchProvider>
     </RoleGuard>
   )
 }
