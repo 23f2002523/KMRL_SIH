@@ -29,8 +29,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    // Check if user has access to AI predictions (Admin and Operator only)
-    if (!['Admin', 'Operator'].includes(userRole)) {
+    // Check if user has access to AI predictions (Operator only)
+    if (userRole !== 'Operator') {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
     }
 
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 // POST /api/ai/predictions - Trigger prediction update (for scheduled tasks)
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication (Admin only for triggering updates)
+    // Check authentication (Operator access for triggering updates)
     let token = request.cookies.get('token')?.value
     
     if (!token) {
@@ -119,8 +119,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
-    if (userRole !== 'Admin') {
-      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    if (userRole !== 'Operator') {
+      return NextResponse.json({ error: 'Operator access required' }, { status: 403 })
     }
 
     // Run all predictions and store alerts in database
